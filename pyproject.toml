@@ -6,7 +6,7 @@ authors = ["Victor <lyferov@yandex.ru>"]
 license = "MIT"
 homepage = "https://github.com/devind-team/devind-django-helpers"
 repository = "https://github.com/devind-team/devind-django-helpers"
-keywords = ["django", "graphene", "helpers"]
+keywords = ["django", "graphene", "core"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
