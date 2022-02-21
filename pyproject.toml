@@ -15,7 +15,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 celery = "^5.2.3"
 channels = "^3.0.4"
 channels-redis = "^3.3.1"
