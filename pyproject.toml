@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "devind_core"
+version = "0.0.1"
+description = "Devind core."
+authors = ["Victor <lyferov@yandex.ru>"]
+license = "MIT"
+homepage = "https://github.com/devind-team/devind-django-helpers"
+repository = "https://github.com/devind-team/devind-django-helpers"
+keywords = ["django", "graphene", "helpers"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Framework :: Django"
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+celery = "^5.2.3"
+channels = "^3.0.4"
+channels-redis = "^3.3.1"
+Django = ">=3.2.12,<5.0.0"
+devind_helpers = "^0.2.1"
+django-oauth-toolkit = "^1.7.0"
+django-channels-graphql-ws = "^0.9.1"
+graphene-django = "^2.15.0"
+openpyxl = "^3.0.9"
+user-agents = "^2.2.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.semantic_release]
+version_variable = [
+    "devind_core/__init__.py:__version__",
+    "pyproject.toml:version"
+]
+branch = "main"
+upload_to_pypi = true
+upload_to_release = true
+build_command = "pip install poetry && poetry build"
