@@ -15,6 +15,7 @@ from devind_helpers.schema.mutations import BaseMutation
 
 class AddGroupMutation(BaseMutation):
     """Мутация для добавления группы."""
+
     class Input:
         name = graphene.String(required=True, description='Название группы')
         permission_from = graphene.Int(desctiption='Скопировать привилегии из указанной группы')
@@ -38,9 +39,12 @@ class AddGroupMutation(BaseMutation):
 
 class ChangeGroupNameMutation(BaseMutation):
     """Мутация для изменения имени группы."""
+
     class Input:
         group_id = graphene.Int(required=True, description='Идентификатор группы')
         name = graphene.String(required=True, description='Название группы')
+
+    group = graphene.Field(GroupType, description='Измененная группа')
 
     @staticmethod
     @permission_classes([IsAuthenticated, ChangeGroup])
@@ -48,15 +52,19 @@ class ChangeGroupNameMutation(BaseMutation):
         group: Group = get_object_or_404(Group, pk=group_id)
         group.name = name
         group.save(update_fields=('name',))
-        return ChangeGroupNameMutation()
+        return ChangeGroupNameMutation(group=group)
 
 
 class ChangeGroupPermissionsMutation(BaseMutation):
     """Мутация для изменения привилегий группы."""
+
     class Input:
         group_id = graphene.Int(required=True, description='Идентификатор группы')
         permissions_id = graphene.List(graphene.Int, required=True, description='Идентификаторы привилегий')
         action = graphene.Field(ActionRelationShip, required=True, description='Действие')
+
+    permissions_id = graphene.List(graphene.Int, required=True, description='Идентификаторы привилегий')
+    action = graphene.Field(ActionRelationShip, required=True, description='Действие')
 
     @staticmethod
     @permission_classes([IsAuthenticated, ChangeGroup])
@@ -76,11 +84,12 @@ class ChangeGroupPermissionsMutation(BaseMutation):
                 status=False,
                 errors=[ErrorFieldType('action', ['Действие не найдено'])]
             )
-        return ChangeGroupPermissionsMutation()
+        return ChangeGroupPermissionsMutation(permissions_id=permissions_id, action=action)
 
 
 class DeleteGroupMutation(BaseMutation):
     """Мутация для удаления группы."""
+
     class Input:
         group_id = graphene.Int(required=True, description='Идентификатор группы')
 
