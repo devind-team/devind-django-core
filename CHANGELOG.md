@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.2 (2022-03-01)
+### Fix
+* Change group mutations api ([`2e22c2b`](https://github.com/devind-team/devind-django-core/commit/2e22c2b7910697b314d291fd01824dffff984ebd))
+
 ## v0.1.1 (2022-02-21)
 ### Fix
 * Обновление версии python до 3.10 ([`55d3b68`](https://github.com/devind-team/devind-django-core/commit/55d3b68c8fe2a49d1b9dd4655282410bccf64575))
