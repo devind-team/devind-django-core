@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.1.3 (2022-03-07)
+### Fix
+* Add missing import ([`1c86ee5`](https://github.com/devind-team/devind-django-core/commit/1c86ee56589feaa2414ee94512389d52bd872d83))
+
 ## v0.1.2 (2022-03-01)
 ### Fix
 * Change group mutations api ([`2e22c2b`](https://github.com/devind-team/devind-django-core/commit/2e22c2b7910697b314d291fd01824dffff984ebd))
