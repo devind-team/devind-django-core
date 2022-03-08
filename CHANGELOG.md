@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.0 (2022-03-08)
+### Feature
+* Update devind_helpers ([`c9e836f`](https://github.com/devind-team/devind-django-core/commit/c9e836f932221def59afe99eebfc2151ee6fd1b1))
+
 ## v0.1.3 (2022-03-07)
 ### Fix
 * Add missing import ([`1c86ee5`](https://github.com/devind-team/devind-django-core/commit/1c86ee56589feaa2414ee94512389d52bd872d83))
