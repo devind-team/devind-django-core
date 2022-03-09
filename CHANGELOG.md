@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.2.1 (2022-03-09)
+### Fix
+* Fix validator in profile models ([`17445ed`](https://github.com/devind-team/devind-django-core/commit/17445edf013e9d33d3bb9d70eb56af94870f4f31))
+
 ## v0.2.0 (2022-03-08)
 ### Feature
 * Update devind_helpers ([`c9e836f`](https://github.com/devind-team/devind-django-core/commit/c9e836f932221def59afe99eebfc2151ee6fd1b1))
