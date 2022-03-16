@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.0 (2022-03-16)
+### Feature
+* Добавлен идентификатор удаленной группы в мутации ([`3f1c9d8`](https://github.com/devind-team/devind-django-core/commit/3f1c9d8bb1a4f48cd7436e16da83d5ab407bb163))
+
 ## v0.2.1 (2022-03-09)
 ### Fix
 * Fix validator in profile models ([`17445ed`](https://github.com/devind-team/devind-django-core/commit/17445edf013e9d33d3bb9d70eb56af94870f4f31))
