@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.0 (2022-03-31)
+### Feature
+* --clear теперь флаг, добавлен флаг no-sequencer ([`0241df9`](https://github.com/devind-team/devind-django-core/commit/0241df92883eb5bc76e012e85ecc67830a679972))
+
 ## v0.3.0 (2022-03-16)
 ### Feature
 * Добавлен идентификатор удаленной группы в мутации ([`3f1c9d8`](https://github.com/devind-team/devind-django-core/commit/3f1c9d8bb1a4f48cd7436e16da83d5ab407bb163))
