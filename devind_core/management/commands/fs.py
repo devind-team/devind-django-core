@@ -129,8 +129,16 @@ class Command(BaseCommand):
         )
         parser.add_argument(
             '--clear',
+            action='store_true',
             default=False,
             help='Очищать модели или нет'
+        )
+        parser.add_argument(
+            '--no-sequencer',
+            '-ns',
+            action='store_true',
+            default=False,
+            help='Отключение изменения SEQUENCE'
         )
 
     def handle(self, *args, **options):
@@ -151,7 +159,7 @@ class Command(BaseCommand):
                     model.objects.all().delete()
                 with open(mdl_path, encoding='utf-8') as file:
                     max_id = self.seeder_factory(model, json.load(file))
-                if max_id is not None:
+                if not options['no-sequencer'] and max_id is not None:
                     with connection.cursor() as cursor:
                         cursor.execute(
                             f'ALTER SEQUENCE {model._meta.db_table}_id_seq RESTART WITH {max_id + 1};'

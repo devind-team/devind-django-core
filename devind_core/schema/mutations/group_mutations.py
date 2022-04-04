@@ -93,11 +93,13 @@ class DeleteGroupMutation(BaseMutation):
     class Input:
         group_id = graphene.Int(required=True, description='Идентификатор группы')
 
+    id = graphene.ID(required=True, description='Идентификатор группы')
+
     @staticmethod
     @permission_classes([IsAuthenticated, DeleteGroup])
     def mutate_and_get_payload(root, info: ResolveInfo, group_id: int):
         Group.objects.filter(pk=group_id).delete()
-        return DeleteGroupMutation()
+        return DeleteGroupMutation(id=group_id)
 
 
 class GroupMutations(graphene.ObjectType):

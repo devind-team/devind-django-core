@@ -45,8 +45,8 @@ class ProfileValidator(Validator):
     """Класс валидации пользователя."""
 
     name = 'required|min_length:2|max_length:512'
-    code = 'required|min_length:2|max_length:30|unique:core.Profile,core'
-    parent_id = 'exist:core.Profile,id'
+    code = 'required|min_length:2|max_length:30|unique:devind_core.Profile,core'
+    parent_id = 'exist:devind_core.Profile,id'
 
     message = {
         'name': {
@@ -71,7 +71,7 @@ class ProfileValueValidator(Validator):
 
     value = 'required'
     user_id = 'exist:AUTH_USER_MODEL,id'
-    profile_id = 'exist:core.Profile,id'
+    profile_id = 'exist:devind_core.Profile,id'
 
     message = {
         'value': {
