@@ -30,8 +30,11 @@ class AddFileMutation(BaseMutation):
     files = graphene.List(FileType, required=True, description='Загруженные файлы')
 
     @staticmethod
-    def mutate_and_get_payload(root, info: ResolveInfo, user_id: str or None, files: List[InMemoryUploadedFile]):
-        user: Optional[User] = get_object_or_none(User, pk=from_gid_or_none(user_id)[1])
+    @permission_classes((IsAuthenticated,))
+    def mutate_and_get_payload(root, info: ResolveInfo, user_id: Optional[str], files: List[InMemoryUploadedFile]):
+        user: Optional[User] = get_object_or_none(User, pk=from_gid_or_none(user_id)[1]) \
+            if user_id \
+            else info.context.user
         return AddFileMutation(
             files=reversed([File.objects.create(user=user, name=file.name, src=file) for file in files])
         )
