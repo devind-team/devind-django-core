@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.0 (2022-04-04)
+### Feature
+* Если пользователь не задан, берется из контекста ([`5aba63d`](https://github.com/devind-team/devind-django-core/commit/5aba63d04cb9ce23cc20ad090fff0f7c5c476bb6))
+
 ## v0.4.0 (2022-03-31)
 ### Feature
 * --clear теперь флаг, добавлен флаг no-sequencer ([`0241df9`](https://github.com/devind-team/devind-django-core/commit/0241df92883eb5bc76e012e85ecc67830a679972))
