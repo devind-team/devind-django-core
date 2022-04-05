@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.1 (2022-04-05)
+### Fix
+* Исправлен флаг -ns ([`d5ee67f`](https://github.com/devind-team/devind-django-core/commit/d5ee67f57db247c31b2b0fbf8d024284fa311a7d))
+
 ## v0.5.0 (2022-04-04)
 ### Feature
 * Если пользователь не задан, берется из контекста ([`5aba63d`](https://github.com/devind-team/devind-django-core/commit/5aba63d04cb9ce23cc20ad090fff0f7c5c476bb6))
