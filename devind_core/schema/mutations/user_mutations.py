@@ -31,7 +31,7 @@ from devind_core.permissions import AddUser, \
 from devind_core.schema.types import GroupType
 from devind_helpers.schema.types import ErrorFieldType, RowFieldErrorType, TableType
 from devind_core.validators import UserValidator
-from devind_core.settings import settings
+from devind_core.settings import devind_settings
 from devind_helpers.decorators import permission_classes
 from devind_helpers.import_from_file import ImportFromFile
 from devind_helpers.orm_utils import get_object_or_none, get_object_or_404
@@ -52,7 +52,7 @@ ProfileValue: Type[models.Model] = get_profile_value_model()
 ResetPassword: Type[models.Model] = get_reset_password_model()
 Session: Type[models.Model] = get_session_model()
 User: Type[models.Model] = get_user_model()
-UserType = settings.USER_TYPE
+UserType = devind_settings.USER_TYPE
 
 
 class GetTokenMutation(BaseMutation):
