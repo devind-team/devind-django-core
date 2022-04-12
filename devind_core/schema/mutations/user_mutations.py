@@ -19,7 +19,6 @@ from graphql_relay import from_global_id
 from oauth2_provider.models import AccessToken
 from oauth2_provider.views.base import TokenView
 
-from apps.core.schema import UserType
 from devind_core.models import get_file_model, \
     get_profile_model, \
     get_profile_value_model, \
@@ -32,6 +31,7 @@ from devind_core.permissions import AddUser, \
 from devind_core.schema.types import GroupType
 from devind_helpers.schema.types import ErrorFieldType, RowFieldErrorType, TableType
 from devind_core.validators import UserValidator
+from devind_core.settings import settings
 from devind_helpers.decorators import permission_classes
 from devind_helpers.import_from_file import ImportFromFile
 from devind_helpers.orm_utils import get_object_or_none, get_object_or_404
@@ -40,7 +40,11 @@ from devind_helpers.redis_client import redis
 from devind_helpers.request import Request
 from devind_helpers.schema.mutations import BaseMutation
 from devind_helpers.utils import convert_str_to_int
-from devind_notifications.models import Mailing
+try:
+    from devind_notifications.models import Mailing
+except ModuleNotFoundError:
+    """Если модуль уведомлений не установлен"""
+    Mailing = False
 
 File: Type[models.Model] = get_file_model()
 Profile: Type[models.Model] = get_profile_model()
@@ -48,6 +52,7 @@ ProfileValue: Type[models.Model] = get_profile_value_model()
 ResetPassword: Type[models.Model] = get_reset_password_model()
 Session: Type[models.Model] = get_session_model()
 User: Type[models.Model] = get_user_model()
+UserType = settings.USER_TYPE
 
 
 class GetTokenMutation(BaseMutation):
@@ -78,7 +83,7 @@ class GetTokenMutation(BaseMutation):
         )
         url, header, body, status = TokenView().create_token_response(request)
         if status != 200:
-            return GetTokenMutation(success=False, errors=[ErrorFieldType('login', ['Неверный логин или пароль'])])
+            return GetTokenMutation(success=False, errors=[ErrorFieldType('username', ['Неверный логин или пароль'])])
         body_dict = json.loads(body)
         ip: str = info.context.META['REMOTE_ADDR']
         user_agent: str = info.context.META['HTTP_USER_AGENT']
@@ -255,7 +260,7 @@ class ChangePasswordMutation(BaseMutation):
         else:
             user.set_password(password_new)
             user.save(update_fields=('password',))
-            Mailing.objects.create(
+            Mailing and Mailing.objects.create(
                 address=user.email,
                 header='Изменение пароля',
                 text=render_to_string('mail/auth/changed_password.html', {'user': user}, request=info.context),
@@ -310,7 +315,7 @@ class RestorePasswordMutation(BaseMutation):
         with transaction.atomic():
             reset_password.user.save(update_fields=('password',))
             reset_password.save(update_fields=('password',))
-        Mailing.objects.create(
+        Mailing and Mailing.objects.create(
             address=reset_password.user.email,
             header='Изменение пароля',
             text=render_to_string(
@@ -342,7 +347,7 @@ class RecoveryPasswordMutation(BaseMutation):
         if user is None:
             return error_email
         token: str = user.get_token()
-        Mailing.objects.create(
+        Mailing and Mailing.objects.create(
             address=email,
             header='Восстановление пароля',
             text=render_to_string(
@@ -374,7 +379,7 @@ class RequestCodeMutation(BaseMutation):
 
         code: int = randrange(10 ** 5, 10 ** 6)
         redis.set(f'user.{user.pk}.request_code', code, ex=60)   # Время жизни 60 секунд
-        Mailing.objects.create(
+        Mailing and Mailing.objects.create(
             address=email,
             header='Верификация аккаунта',
             text=render_to_string('mail/auth/request_code.html', {'user': user, 'code': code}, request=info.context),
@@ -414,7 +419,7 @@ class ConfirmEmailMutation(BaseMutation):
             )
         user.email, user.agreement = email, make_aware(datetime.now())
         user.save(update_fields=('email', 'agreement',))
-        Mailing.objects.create(
+        Mailing and Mailing.objects.create(
             address=email,
             header='Верификация аккаунта',
             text=render_to_string('mail/auth/confirm_email.html', {'user': user}, request=info.context),
