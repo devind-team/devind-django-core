@@ -2,6 +2,11 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.0 (2022-04-12)
+### Feature
+* Исправлены некоторые проблемы, модуль mailing стал опционален ([`a75f1f7`](https://github.com/devind-team/devind-django-core/commit/a75f1f7dc16f3634fdf1dfcfdde7d150e94519cb))
+* Update django ([`e212a85`](https://github.com/devind-team/devind-django-core/commit/e212a85417eeb5bfbf3ef76227ee61195c73fd89))
+
 ## v0.5.1 (2022-04-05)
 ### Fix
 * Исправлен флаг -ns ([`d5ee67f`](https://github.com/devind-team/devind-django-core/commit/d5ee67f57db247c31b2b0fbf8d024284fa311a7d))
