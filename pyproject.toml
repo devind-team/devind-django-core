@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "devind_core"
-version = "0.6.0"
+version = "0.6.1"
 description = "Devind core."
 authors = ["Victor <lyferov@yandex.ru>"]
 license = "MIT"

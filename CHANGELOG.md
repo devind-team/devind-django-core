@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.1 (2022-04-12)
+### Fix
+* Исправлена проблема с получением пользовательского типа ([`f432b08`](https://github.com/devind-team/devind-django-core/commit/f432b0865203e360112fc46fd53f91c0e8c94c07))
+
 ## v0.6.0 (2022-04-12)
 ### Feature
 * Исправлены некоторые проблемы, модуль mailing стал опционален ([`a75f1f7`](https://github.com/devind-team/devind-django-core/commit/a75f1f7dc16f3634fdf1dfcfdde7d150e94519cb))
