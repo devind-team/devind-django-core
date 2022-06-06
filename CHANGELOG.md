@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.6.2 (2022-06-06)
+### Fix
+* Удалена зависимость channels-redis ([`9d8aa83`](https://github.com/devind-team/devind-django-core/commit/9d8aa831321cb8f531d1bc260fe8a0125141e9b5))
+
 ## v0.6.1 (2022-04-12)
 ### Fix
 * Исправлена проблема с получением пользовательского типа ([`f432b08`](https://github.com/devind-team/devind-django-core/commit/f432b0865203e360112fc46fd53f91c0e8c94c07))
