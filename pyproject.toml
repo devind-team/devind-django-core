@@ -26,6 +26,7 @@ graphene-django = "^2.15.0"
 openpyxl = "^3.0.10"
 user-agents = "^2.2.0"
 graphene-file-upload = "^1.3.0"
+django-auditlog = "^2.0.0"
 
 [tool.poetry.dev-dependencies]
 

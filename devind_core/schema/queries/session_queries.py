@@ -7,8 +7,9 @@ from graphene_django import DjangoListField
 from graphene_django.filter import DjangoFilterConnectionField
 from graphql import ResolveInfo
 from oauth2_provider.models import Application
+from auditlog.models import LogEntry
 
-from devind_core.models import get_session_model, get_log_entry_model, get_log_request_model
+from devind_core.models import get_session_model, get_log_request_model
 from devind_core.permissions import ChangeUser
 from devind_core.schema.types import SessionType, \
     ApplicationType, \
@@ -21,7 +22,6 @@ from devind_helpers.utils import from_gid_or_none
 
 User: models.Model = get_user_model()
 Session: models.Model = get_session_model()
-LogEntry: models.Model = get_log_entry_model()
 LogRequest: models.Model = get_log_request_model()
 
 
@@ -65,4 +65,4 @@ class SessionQueries(graphene.ObjectType):
             if user_id is not None \
             else info.context.user
         info.context.check_object_permissions(info.context, user)
-        return LogEntry.objects.filter(session__user=user)
+        return LogEntry.objects.filter(actor=user)

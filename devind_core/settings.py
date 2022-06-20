@@ -15,7 +15,6 @@ from django.conf import settings
 USER_SETTINGS: Optional[Dict] = getattr(settings, 'DEVIND_CORE', None)
 
 FILE_MODEL = getattr(settings, 'DEVIND_CORE_FILE_MODEL', 'devind_core.File')
-LOG_ENTRY_MODEL = getattr(settings, 'DEVIND_CORE_LOG_ENTRY_MODEL', 'devind_core.LogEntry')
 LOG_REQUEST_MODEL = getattr(settings, 'DEVIND_CORE_LOG_REQUEST_MODEL', 'devind_core.LogRequest')
 RESET_PASSWORD_MODEL = getattr(settings, 'DEVIND_CORE_RESET_PASSWORD_MODEL', 'devind_core.ResetPassword')
 SESSION_MODEL = getattr(settings, 'DEVIND_CORE_SESSION_MODEL', 'devind_core.Session')
@@ -29,7 +28,6 @@ USER_TYPE = getattr(settings, 'DEVIND_CORE_USER_TYPE', 'devind_core.schema.UserT
 
 DEFAULTS = {
     'FILE_MODEL': FILE_MODEL,
-    'LOG_ENTRY_MODEL': LOG_ENTRY_MODEL,
     'LOG_REQUEST_MODEL': LOG_REQUEST_MODEL,
     'RESET_PASSWORD_MODEL': RESET_PASSWORD_MODEL,
     'SESSION_MODEL': SESSION_MODEL,
