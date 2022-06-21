@@ -280,11 +280,9 @@ class LogEntryType(OptimizedDjangoObjectType):
         return le.changes
 
     @staticmethod
-    def resolve_session(le: LogEntry, info: ResolveInfo):
+    def resolve_session(le: LogEntry, info: ResolveInfo) -> Session | None:
         if hasattr(le, 'logentrysession'):
             return le.logentrysession.session
-        else:
-            return None
 
     @staticmethod
     def resolve_created_at(le: LogEntry, info: ResolveInfo):

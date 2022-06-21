@@ -2,6 +2,7 @@
 import inspect
 
 from typing import Type
+from contextlib import suppress
 
 from django.apps import apps
 from django.http import HttpRequest
@@ -80,12 +81,10 @@ class LogEntrySession(models.Model):
 def _on_log_entry_created(instance, **kwargs):
     request: HttpRequest | None = None
     for entry in reversed(inspect.stack()):
-        try:
+        with suppress(KeyError):
             request = entry[0].f_locals['request']
             if isinstance(request, HttpRequest):
                 break
-        except KeyError:
-            pass
     if request is not None and hasattr(request, 'session'):
         LogEntrySession.objects.create(log_entry=instance, session=request.session)
 
