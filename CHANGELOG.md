@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.0 (2022-06-21)
+### Feature
+* Небольшие исправления кода ([`0f7fa8b`](https://github.com/devind-team/devind-django-core/commit/0f7fa8be2c986a9cf3325fd8694aa8600aa39998))
+* Переход на django audit ([`d209622`](https://github.com/devind-team/devind-django-core/commit/d2096220504b9c4507c522adf669b3e49fd20c2b))
+* Переход на django audit ([`c31b8f8`](https://github.com/devind-team/devind-django-core/commit/c31b8f8575642b61b73731b63e5f159690fc59b4))
+
 ## v0.6.2 (2022-06-06)
 ### Fix
 * Удалена зависимость channels-redis ([`9d8aa83`](https://github.com/devind-team/devind-django-core/commit/9d8aa831321cb8f531d1bc260fe8a0125141e9b5))
