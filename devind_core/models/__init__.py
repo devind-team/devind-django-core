@@ -34,19 +34,6 @@ def get_file_model() -> Type[AbstractFile]:
     return apps.get_model(devind_settings.FILE_MODEL)
 
 
-#class LogEntry(AbstractLogEntry):
-#    """Модель хранения изменений моделей."""
-#    class Meta(AbstractLogEntry.Meta):
-#        """Мета класс хранения изменений моделей."""
-#
-#        pass
-
-
-#def get_log_entry_model() -> LogEntry:
-#    """Модель изменений данных."""
-#    return LogEntry
-
-
 class LogRequest(AbstractLogRequest):
     """Модель хранения пользовательских запросов."""
 

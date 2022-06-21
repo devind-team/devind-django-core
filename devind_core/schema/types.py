@@ -77,7 +77,7 @@ class SessionType(OptimizedDjangoObjectType):
     os = graphene.String(required=True, description='Операционная система пользователя')
     device = graphene.String(required=True, description='Устройство пользователя')
     date = graphene.DateTime(description='Дата сессии пользователя')
-    #activity = graphene.Int(required=True, description='Количество действий в сессии пользователя') todo: implement
+    activity = graphene.Int(required=True, description='Количество действий в сессии пользователя')
     history = graphene.Int(required=True, description='Количество запросов в сессии пользователя')
     user = graphene.Field(devind_settings.USER_TYPE, required=True, description='Пользователь')
 
@@ -96,8 +96,7 @@ class SessionType(OptimizedDjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        #queryset = queryset.annotate(Count('logentry'), Count('logrequest'))
-        queryset = queryset.annotate(Count('logrequest'))
+        queryset = queryset.annotate(Count('logentrysession'), Count('logrequest'))
         return super(OptimizedDjangoObjectType, cls).get_queryset(queryset, info)
 
     @staticmethod
@@ -105,10 +104,10 @@ class SessionType(OptimizedDjangoObjectType):
     def resolve_date(session: Session, info: ResolveInfo) -> datetime or None:
         return session.created_at
 
-    # @staticmethod
-    # @resolver_hints(model_field='logentry__count')
-    # def resolve_activity(session: Union[Session, Any], info: ResolveInfo) -> int:
-    #     return session.logentry__count
+    @staticmethod
+    @resolver_hints(model_field='logentrysession__count')
+    def resolve_activity(session: Union[Session, Any], info: ResolveInfo) -> int:
+        return session.logentrysession__count
 
     @staticmethod
     @resolver_hints(model_field='logrequest__count')
