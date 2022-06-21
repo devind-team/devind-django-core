@@ -6,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import QuerySet, Count, Model
+from auditlog.models import LogEntry
 from graphene.relay import Node
 from graphene_django.types import DjangoObjectType
 from graphene_django_optimizer import resolver_hints
@@ -19,7 +20,6 @@ from devind_core.models import get_file_model, \
     get_profile_value_model, \
     get_setting_model, \
     get_setting_value_model, \
-    get_log_entry_model, \
     get_log_request_model
 from devind_core.models import AbstractFile, \
     AbstractSetting, \
@@ -27,8 +27,7 @@ from devind_core.models import AbstractFile, \
     AbstractProfile, \
     AbstractProfileValue, \
     AbstractSession, \
-    AbstractLogRequest, \
-    AbstractLogEntry
+    AbstractLogRequest
 from devind_core.schema.connections.countable_connection import CountableConnection
 from devind_core.settings import devind_settings
 from devind_helpers.optimized import OptimizedDjangoObjectType
@@ -41,7 +40,7 @@ Profile: Type[AbstractProfile] = get_profile_model()
 ProfileValue: Type[AbstractProfileValue] = get_profile_value_model()
 Session: Type[AbstractSession] = get_session_model()
 LogRequest: Type[AbstractLogRequest] = get_log_request_model()
-LogEntry: Type[AbstractLogEntry] = get_log_entry_model()
+#LogEntry: Type[AbstractLogEntry] = get_log_entry_model()
 User = get_user_model()
 
 
@@ -97,7 +96,7 @@ class SessionType(OptimizedDjangoObjectType):
 
     @classmethod
     def get_queryset(cls, queryset, info):
-        queryset = queryset.annotate(Count('logentry'), Count('logrequest'))
+        queryset = queryset.annotate(Count('logentrysession'), Count('logrequest'))
         return super(OptimizedDjangoObjectType, cls).get_queryset(queryset, info)
 
     @staticmethod
@@ -106,9 +105,9 @@ class SessionType(OptimizedDjangoObjectType):
         return session.created_at
 
     @staticmethod
-    @resolver_hints(model_field='logentry__count')
+    @resolver_hints(model_field='logentrysession__count')
     def resolve_activity(session: Union[Session, Any], info: ResolveInfo) -> int:
-        return session.logentry__count
+        return session.logentrysession__count
 
     @staticmethod
     @resolver_hints(model_field='logrequest__count')
@@ -262,15 +261,29 @@ class LogEntryType(OptimizedDjangoObjectType):
 
     session = graphene.Field(SessionType, description='Сессия пользователя')
     content_type = graphene.Field(ContentTypeType, description='Модель, связанная с действием')
+    payload = graphene.Field(graphene.String, description='Измененные данные')
+    created_at = graphene.Field(graphene.DateTime, description='Дата и время действия')
 
     class Meta:
         model = LogEntry
         interfaces = (Node,)
-        fields = ('object_id', 'action', 'payload', 'created_at', 'content_type', 'session',)
+        fields = ('object_id', 'action', 'payload', 'created_at', 'content_type',)
         filter_fields = {
             'object_id': ['icontains'],
             'action': ['contains'],
-            'created_at': ['gt', 'lt', 'gte', 'lte'],
             'content_type__model': ['icontains']
         }
         connection_class = CountableConnection
+
+    @staticmethod
+    def resolve_payload(le: LogEntry, info: ResolveInfo):
+        return le.changes
+
+    @staticmethod
+    def resolve_session(le: LogEntry, info: ResolveInfo) -> Session | None:
+        if hasattr(le, 'logentrysession'):
+            return le.logentrysession.session
+
+    @staticmethod
+    def resolve_created_at(le: LogEntry, info: ResolveInfo):
+        return le.timestamp

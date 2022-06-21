@@ -1,11 +1,17 @@
 """Модуль получения моделей, содержащихся в ядре приложения."""
+import inspect
 
 from typing import Type
+from contextlib import suppress
 
 from django.apps import apps
+from django.http import HttpRequest
+from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from auditlog.models import LogEntry
 
 from .file import AbstractFile
-from .log_entry import AbstractLogEntry
 from .log_request import AbstractLogRequest
 from .profile import AbstractProfile, AbstractProfileValue
 from .reset_password import AbstractResetPassword
@@ -27,19 +33,6 @@ class File(AbstractFile):
 def get_file_model() -> Type[AbstractFile]:
     """Модель хранения файлов."""
     return apps.get_model(devind_settings.FILE_MODEL)
-
-
-class LogEntry(AbstractLogEntry):
-    """Модель хранения изменений моделей."""
-    class Meta(AbstractLogEntry.Meta):
-        """Мета класс хранения изменений моделей."""
-
-        pass
-
-
-def get_log_entry_model() -> Type[AbstractLogEntry]:
-    """Модель изменений данных."""
-    return apps.get_model(devind_settings.LOG_ENTRY_MODEL)
 
 
 class LogRequest(AbstractLogRequest):
@@ -77,6 +70,23 @@ class Session(AbstractSession):
         """Мета класс хранения пользовательских сессий."""
 
         pass
+
+
+class LogEntrySession(models.Model):
+    log_entry = models.OneToOneField(LogEntry, on_delete=models.CASCADE, primary_key=True)
+    session = models.ForeignKey(Session, on_delete=models.CASCADE)
+
+
+@receiver(post_save, sender=LogEntry)
+def _on_log_entry_created(instance, **kwargs):
+    request: HttpRequest | None = None
+    for entry in reversed(inspect.stack()):
+        with suppress(KeyError):
+            request = entry[0].f_locals['request']
+            if isinstance(request, HttpRequest):
+                break
+    if request is not None and hasattr(request, 'session'):
+        LogEntrySession.objects.create(log_entry=instance, session=request.session)
 
 
 def get_session_model() -> Type[AbstractSession]:
