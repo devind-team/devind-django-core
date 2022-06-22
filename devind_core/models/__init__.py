@@ -85,8 +85,9 @@ def _on_log_entry_created(instance, **kwargs):
             request = entry[0].f_locals['request']
             if isinstance(request, HttpRequest):
                 break
-    if request is not None and hasattr(request, 'session'):
-        LogEntrySession.objects.create(log_entry=instance, session=request.session)
+    _session: Session | None = getattr(request, 'session', None)
+    if _session is not None:
+        LogEntrySession.objects.create(log_entry=instance, session=_session)
 
 
 def get_session_model() -> Type[AbstractSession]:
