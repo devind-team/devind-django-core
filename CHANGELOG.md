@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.1 (2022-06-22)
+### Fix
+* Проверка наличия сессии ([`2875e23`](https://github.com/devind-team/devind-django-core/commit/2875e238bb7eea6e5585c1483a7f9e157dcd1525))
+
 ## v0.7.0 (2022-06-21)
 ### Feature
 * Небольшие исправления кода ([`0f7fa8b`](https://github.com/devind-team/devind-django-core/commit/0f7fa8be2c986a9cf3325fd8694aa8600aa39998))
