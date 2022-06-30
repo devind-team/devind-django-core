@@ -1,11 +1,12 @@
-import graphene
-from graphene_django import DjangoListField
+from strawberry_django_plus import gql
+
 
 from devind_core.schema.types import GroupType, PermissionType
 
 
-class GroupQueries(graphene.ObjectType):
+@gql.type
+class GroupQueries:
 
-    groups = DjangoListField(GroupType, required=True)
-    permissions = DjangoListField(PermissionType, required=True)
+    groups: list[GroupType] = gql.django.field()
+    permissions: list[PermissionType] = gql.django.field()
 

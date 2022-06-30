@@ -18,15 +18,16 @@ classifiers = [
 python = "^3.9"
 celery = "^5.2.7"
 channels = "^3.0.4"
-Django = "^3"
-devind_helpers = "^0.3"
+Django = "^4"
+devind_helpers = "^1"
 django-oauth-toolkit = "^1.7.1"
-django-channels-graphql-ws = "^0.9.1"
-graphene-django = "^2.15.0"
+graphene-django = "3.0.0b7"
 openpyxl = "^3.0.10"
 user-agents = "^2.2.0"
 graphene-file-upload = "^1.3.0"
 django-auditlog = "^2.0.0"
+strawberry-graphql-django = "^0.3.1"
+strawberry-django-plus = "^1.15.0"
 
 [tool.poetry.dev-dependencies]
 

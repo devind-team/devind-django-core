@@ -1,1 +1,1 @@
-from .base_subscription import BaseSubscription
+#from .base_subscription import BaseSubscription
