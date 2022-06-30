@@ -1,4 +1,4 @@
-import graphene
+from strawberry_django_plus import gql
 
 # from devind_core.schema.mutations import FileMutations, \
 #     GroupMutations, \
@@ -17,12 +17,12 @@ import graphene
 #     GroupType, \
 #     PermissionType
 #from .queries import UserQueries, ProfileQueries, GroupQueries, SessionQueries
-from .queries import GroupQueries
+from .queries import GroupQueries, ProfileQueries
 
-
+@gql.type
 class Query(
     #UserQueries,
-    #ProfileQueries,
+    ProfileQueries,
     GroupQueries
     #SessionQueries,
 ):

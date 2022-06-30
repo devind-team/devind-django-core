@@ -46,6 +46,11 @@ LogRequest: Type[AbstractLogRequest] = get_log_request_model()
 #LogEntry: Type[AbstractLogEntry] = get_log_entry_model()
 User = get_user_model()
 
+from importlib import import_module # todo переместить отсюда
+a, b = devind_settings.USER_TYPE.rsplit('.', 1)
+mm = import_module(a)
+UserType = getattr(mm, b)
+
 
 @gql.django.type(ContentType)
 class ContentTypeType:
@@ -80,7 +85,6 @@ class PermissionType:
     name: gql.auto
     content_type: ContentTypeType
     codename: gql.auto
-    #groups: 'list[GroupType]' #? todo
 
     @gql.django.field#(only=['group_set']) todo
     def groups(self, root: Permission) -> list[GroupType]:
@@ -107,7 +111,7 @@ class SessionType(gql.relay.Node):
     #date: gql.auto todo??
     #activity: gql.auto
     #history: gql.auto
-    user: gql.auto
+    user: UserType
 
     @gql.django.field
     def browser(self, root: Session) -> str:
@@ -183,7 +187,7 @@ class FileType(gql.relay.Node):
     deleted: gql.auto
     created_at: gql.auto
     updated_at: gql.auto
-    #user: gql.auto
+    user: UserType
 
 
     @gql.django.field
@@ -275,20 +279,20 @@ class ProfileType:#todo ds
     kind: gql.auto
     position: gql.auto
 
-    @gql.django.field(only=['profile_set'])
-    def children(self, root: Profile) -> QuerySet[Profile]:
+    @gql.django.field#(only=['profile_set'])
+    def children(self, root: Profile) -> 'list[ProfileType]':
         return root.profile_set.all()
 
-    @gql.django.field(only=['profile_set'])
-    def available(self, root: Profile, info: Info) -> QuerySet[Profile]:
+    @gql.django.field#(only=['profile_set'])
+    def available(self, root: Profile, info: Info) -> 'list[ProfileType]':
         user_id = info.variable_values.get('userId', None)
         if not user_id:
             return root.profilevalue_set.none()
         _, user_id = from_global_id(user_id)
         return root.profilevalue_set.get(user_id=user_id)
 
-    @gql.django.field(only=['profile_set'])
-    def resolve_value(self, root: Profile, info: Info) -> QuerySet[ProfileValue]:
+    @gql.django.field#(only=['profile_set'])
+    def value(self, root: Profile, info: Info) -> 'list[ProfileValueType]':
         user_id = info.variable_values.get('userId', None)
         if not user_id:
             return root.profilevalue_set.none()
@@ -330,15 +334,14 @@ class ProfileType:#todo ds
 #         _, user_id = from_global_id(user_id)
 #         return profile.profilevalue_set.get(user_id=user_id)
 
-
 @gql.django.type(ProfileValue)
-class ProfileValueType:#todo ds
+class ProfileValueType:
     id: gql.auto
     visibility: gql.auto
     created_at: gql.auto
     updated_at: gql.auto
-    user: gql.auto #todo ds
-    profile: 'Profile'
+    user: 'UserType'
+    profile: 'ProfileType'
 
     @gql.django.field
     def value(self, root: Profile, info: Info) -> str | None:
@@ -368,7 +371,7 @@ class ProfileValueType:#todo ds
 @gql.django.type(AccessToken)
 class AccessTokenType:
     id: gql.auto
-    user: gql.auto # todo a
+    user: UserType
     source_refresh_token: gql.auto # todo a
     token: gql.auto
     id_token: gql.auto #todo a
