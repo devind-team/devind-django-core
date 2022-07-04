@@ -1,15 +1,14 @@
 #from graphene_django.types import DjangoObjectType
 from apps.core.models import User
-import strawberry
-from strawberry import auto
+from strawberry_django_plus import gql
 
 
-@strawberry.django.type(User)
-class UserType:
-    id: auto
-    username: auto
-    email: auto
-    first_name: auto
+@gql.django.type(User)
+class UserType(gql.relay.Node):
+    id: gql.relay.GlobalID
+    username: gql.auto
+    email: gql.auto
+    first_name: gql.auto
 
 # class UserType(DjangoObjectType):
 #     """Описание пользовательского типа."""

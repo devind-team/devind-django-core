@@ -1,7 +1,7 @@
 #from datetime import datetime
 from typing import Any, Union, Type
 
-#import graphene
+from importlib import import_module
 from strawberry_django_plus import gql
 from strawberry.types.info import Info
 
@@ -31,9 +31,7 @@ from devind_core.models import AbstractFile, \
     AbstractProfileValue, \
     AbstractSession, \
     AbstractLogRequest
-from devind_core.schema.connections.countable_connection import CountableConnection
 from devind_core.settings import devind_settings
-#from devind_helpers.optimized import OptimizedDjangoObjectType
 from devind_helpers.orm_utils import get_object_or_none
 
 File: Type[AbstractFile] = get_file_model()
@@ -43,13 +41,16 @@ Profile: Type[AbstractProfile] = get_profile_model()
 ProfileValue: Type[AbstractProfileValue] = get_profile_value_model()
 Session: Type[AbstractSession] = get_session_model()
 LogRequest: Type[AbstractLogRequest] = get_log_request_model()
-#LogEntry: Type[AbstractLogEntry] = get_log_entry_model()
 User = get_user_model()
 
-from importlib import import_module # todo переместить отсюда
-a, b = devind_settings.USER_TYPE.rsplit('.', 1)
-mm = import_module(a)
-UserType = getattr(mm, b)
+
+def get_user_type():
+    path, cls = devind_settings.USER_TYPE.rsplit('.', 1)
+    module = import_module(path)
+    return getattr(module, cls)
+
+
+UserType = get_user_type()
 
 
 @gql.django.type(ContentType)
@@ -66,7 +67,7 @@ class ContentTypeType:
 #         model = ContentType
 
 @gql.django.type(Group)
-class GroupType:
+class GroupType(gql.relay.Node):
     id: gql.auto
     name: gql.auto
     permissions: 'list[PermissionType]'
@@ -105,9 +106,6 @@ class PermissionType:
 @gql.django.type(Session)
 class SessionType(gql.relay.Node):
     id: gql.auto
-    #browser: gql.auto
-    #os: gql.auto
-    #device: gql.auto
     #date: gql.auto todo??
     #activity: gql.auto
     #history: gql.auto
@@ -239,6 +237,17 @@ class SettingType:#todo ds
             return root.value
         user_setting = get_object_or_none(SettingValue, user=info.context.user, setting=root)
         return user_setting.value if user_setting is not None else root.value
+
+
+@gql.django.type(SettingValue)
+class SettingValueType:#todo ds
+    id: gql.auto
+    value: gql.auto
+    created_at: gql.auto
+    updated_at: gql.auto
+    setting: SettingType
+    user: UserType
+
 
 
 # class SettingType(OptimizedDjangoObjectType):

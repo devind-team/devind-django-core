@@ -13,7 +13,7 @@ from devind_helpers.orm_utils import get_object_or_404
 
 User: models.Model = get_user_model()
 Profile: models.Model = get_profile_model()
-ProfileValue: models.Model= get_profile_value_model()
+ProfileValue: models.Model = get_profile_value_model()
 
 
 @gql.type

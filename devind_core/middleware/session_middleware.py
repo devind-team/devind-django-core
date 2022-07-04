@@ -4,6 +4,7 @@ from typing import Type
 
 from django.db import models
 from django.http import HttpRequest, HttpResponse
+from django.contrib.auth.models import AnonymousUser
 
 from devind_helpers.orm_utils import get_object_or_none
 from ..models import get_session_model
@@ -19,8 +20,9 @@ class SessionMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         """Непосредственная обработка запроса."""
         Session: Type[models.Model] = get_session_model()   # noqa
+        if not hasattr(request, 'user'):
+            request.user = AnonymousUser()
         if request.META.get("HTTP_AUTHORIZATION", "").startswith("Bearer") \
-                and hasattr(request, 'user') \
                 and request.user.is_authenticated:
             _, token = request.META.get("HTTP_AUTHORIZATION", "").split(' ')
             request.session = get_object_or_none(Session, access_token__token=token, user=request.user)

@@ -17,11 +17,11 @@ from strawberry_django_plus import gql
 #     GroupType, \
 #     PermissionType
 #from .queries import UserQueries, ProfileQueries, GroupQueries, SessionQueries
-from .queries import GroupQueries, ProfileQueries
+from .queries import GroupQueries, ProfileQueries, UserQueries
 
 @gql.type
 class Query(
-    #UserQueries,
+    UserQueries,
     ProfileQueries,
     GroupQueries
     #SessionQueries,
