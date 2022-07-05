@@ -17,14 +17,14 @@ from strawberry_django_plus import gql
 #     GroupType, \
 #     PermissionType
 #from .queries import UserQueries, ProfileQueries, GroupQueries, SessionQueries
-from .queries import GroupQueries, ProfileQueries, UserQueries
+from .queries import GroupQueries, ProfileQueries, UserQueries, SessionQueries
 
 @gql.type
 class Query(
     UserQueries,
     ProfileQueries,
-    GroupQueries
-    #SessionQueries,
+    GroupQueries,
+    SessionQueries
 ):
     """Запросы для приложения core"""
     pass

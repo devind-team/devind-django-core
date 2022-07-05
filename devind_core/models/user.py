@@ -74,3 +74,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         setting: Setting = Setting.objects.get(key=key)
         user_value: Optional[SettingValue] = get_object_or_none(SettingValue, user=self, setting=setting)
         return user_value.value if user_value else setting.value    # noqa
+
+    def can_change(self, user) -> bool:
+        if user.has_perm('core.change_user') or self.pk == user.pk:
+            return True

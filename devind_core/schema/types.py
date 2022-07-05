@@ -1,4 +1,5 @@
 #from datetime import datetime
+import datetime
 from typing import Any, Union, Type
 
 from importlib import import_module
@@ -443,15 +444,15 @@ class LogRequestType(gql.relay.Node):
 #         connection_class = CountableConnection
 
 
-@gql.django.type(LogEntry, filters=LogRequestFilter)
+@gql.django.type(LogEntry)
 class LogEntryType(gql.relay.Node):
-    id: gql.auto
+    id: gql.relay.GlobalID
     object_id: gql.auto
     action: gql.auto
     content_type: 'ContentTypeType'
 
     @gql.django.field
-    def session(self, root: LogEntry) -> Session | None: #todo a
+    def session(self, root: LogEntry) -> SessionType | None: #todo a
         if hasattr(root, 'logentrysession'):
             return root.logentrysession.session
 
@@ -460,7 +461,7 @@ class LogEntryType(gql.relay.Node):
         return root.changes
 
     @gql.django.field(only=['timestamp'])
-    def created_at(self, root: LogEntry) -> gql.auto:
+    def created_at(self, root: LogEntry) -> datetime.time:
         return root.timestamp
 
 

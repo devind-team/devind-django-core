@@ -1,20 +1,13 @@
+from django.core.exceptions import PermissionDenied
+from strawberry.types import Info
+from devind_core.models import AbstractUser
 
-def can_change_user(info, user, *args, **kwargs):
+
+def self_or_can_change(info: Info, user: AbstractUser):
     """Пропускает пользователей, которые могут изменять пользователя."""
-    #return obj.change(info.context.user) or info.context.user == obj
-    def pc(perm):
-        return info.context.request.user == user #or user.change(info.context.request.user)
-    return pc
-
-
-def can_delete_user(info, obj):
-    """Пропускает пользователей, которые могут удалять пользователя."""
-    return obj.change(info.context.user) or info.context.user == obj
-
-
-def can_view_user(info, obj):
-    """Пропускает пользователя, который может просматривать другого пользователя."""
-    return obj.change(info.context.user) or info.context.user == obj
+    if user.can_change(info.context.request.user):
+        return
+    raise PermissionDenied('Ошибка доступа')
 
 # from devind_helpers.permissions import BasePermission, ModelPermission
 #

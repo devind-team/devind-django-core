@@ -3,13 +3,7 @@
 # import graphene
 from strawberry_django_plus import gql
 from strawberry.types import Info
-from strawberry_django_plus.permissions import (
-    HasObjPerm,
-    HasPerm,
-    IsAuthenticated,
-    IsStaff,
-    IsSuperuser,
-)
+from strawberry_django_plus.permissions import IsAuthenticated
 
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -19,7 +13,7 @@ from django.db import models
 from graphql_relay import from_global_id
 #
 from devind_core.models import get_setting_model, get_setting_value_model, get_file_model
-from devind_core.permissions import can_change_user
+from devind_core.permissions import self_or_can_change
 from devind_core.schema.types import SettingType, FileType, UserType, SettingValueType
 # from devind_core.settings import devind_settings
 # from devind_helpers.decorators import permission_classes
@@ -82,15 +76,16 @@ class UserMutations:
         return tt
 
 
-#todo isAuth
 @gql.type
 class UserQueries:
 
     users: gql.relay.Connection[UserType] = gql.django.connection(directives=[IsAuthenticated()])
     user: UserType | None = gql.django.node(directives=[IsAuthenticated()]) # todo: ломать api еще больше ради простоты?
+    settings: list[SettingType] = gql.django.field(description='Настройки приложения')
 
     @gql.django.field
     def me(self, info: Info) -> UserType | None:
+        """Информация обо мне"""
         return hasattr(info.context.request, 'user') and info.context.request.user or None
 
     #@gql.django.field(directives=[IsAuthenticated()])
@@ -99,11 +94,13 @@ class UserQueries:
 
     @gql.django.field
     def user_information(self, user_id: gql.relay.GlobalID) -> UserType | None:
+        """Доступная информация о пользователе"""
         user: User = UserType.resolve_node(user_id, required=True)
         return user if convert_str_to_bool(user.get_settings('USER_PUBLIC')) else None
 
     @gql.django.field
     def has_settings(self) -> bool:
+        """Установлены ли настройки приложения"""
         return Setting.objects.exists()
 
     @gql.django.field
@@ -111,7 +108,7 @@ class UserQueries:
         user: User = UserType.resolve_node(user_id, required=True)
         return SettingValue.objects.filter(user=user)
 
-    @gql.django.field(directives=[HasPerm(perms=['.add_user'], obj_perm_checker=can_change_user, any=False)])
+    @gql.django.field(directives=[IsAuthenticated()])
     def files(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> list[FileType]:
         """Разрешение выгрузки файлов """
 
@@ -119,54 +116,5 @@ class UserQueries:
             user: User = UserType.resolve_node(user_id, required=True)
         else:
             user: User = info.context.request.user
-        #info.context.request.check_object_permissions(info.context.request, user)
+        self_or_can_change(info, user)
         return File.objects.filter(user=user)
-
-
-# class UserQueries(graphene.ObjectType):
-#     me = graphene.Field(devind_settings.USER_TYPE, description='Информация обо мне')
-#     user = graphene.Field(devind_settings.USER_TYPE, user_id=graphene.ID(required=True), description='Информация о указанном пользователе')
-#     users = DjangoFilterConnectionField(devind_settings.USER_TYPE, required=True, description='Пользователи приложения')
-#     user_information = graphene.Field(
-#         devind_settings.USER_TYPE,
-#         user_id=graphene.ID(required=True, description='Идентификатор пользователя'),
-#         description='Доступная информация о пользователе'
-#     )
-#     has_settings = graphene.Boolean(required=True, description='Установлены ли настройки приложения')
-#     settings = DjangoListField(graphene.NonNull(SettingType), required=True, description='Настройки приложения')
-#     files = DjangoFilterConnectionField(FileType, user_id=graphene.ID(), required=True)
-#
-#     @staticmethod
-#     def resolve_me(root, info: ResolveInfo) -> User or None:
-#         return hasattr(info.context, 'user') and info.context.user or None
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated])
-#     def resolve_user(root, info: ResolveInfo, user_id: str, *args, **kwargs):
-#         return get_object_or_none(User, pk=from_global_id(user_id)[1])
-#
-#     @staticmethod
-#     def resolve_user_information(root, info: ResolveInfo, user_id: str, *args, **kwargs):
-#         user: User = get_object_or_404(User, pk=from_global_id(user_id)[1])
-#         return user if convert_str_to_bool(user.get_settings('USER_PUBLIC')) else None
-#
-#     @staticmethod
-#     def resolve_has_settings(root, info: ResolveInfo) -> bool:
-#         return Setting.objects.exists()
-#
-#     @staticmethod
-#     def resolve_settings_values(root, info: ResolveInfo, user_id: str, *args, **kwargs):
-#         user: User = get_object_or_404(User, pk=from_global_id(user_id)[1])
-#         return SettingValue.objects.filter(user=user)
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser])
-#     def resolve_files(root, info: ResolveInfo, user_id=None, **kwargs) -> List[File]:
-#         """Разрешение выгрузки файлов"""
-#
-#         if user_id is not None:
-#             user: User = get_object_or_404(User, pk=from_global_id(user_id)[1])
-#         else:
-#             user: User = info.context.user
-#         info.context.check_object_permissions(info.context, user)
-#         return File.objects.filter(user=user)
