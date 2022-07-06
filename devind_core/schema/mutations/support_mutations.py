@@ -1,34 +1,28 @@
 import os
 from mimetypes import guess_type
-
-import graphene
+from strawberry.types import Info
+from strawberry.file_uploads.scalars import Upload
+from strawberry_django_plus import gql
+from strawberry_django_plus.permissions import IsAuthenticated
 from django.core.mail import EmailMultiAlternatives
-from graphene_file_upload.scalars import Upload
-from graphql import ResolveInfo
-
-from devind_helpers.schema.mutations import BaseMutation
 
 
-class SupportSubmitMutation(BaseMutation):
-    """Отправка письма поддержки"""
+@gql.input
+class SupportSubmitInput:
+    topic: str
+    text: str
+    files: list[Upload]
 
-    class Input:
-        topic = graphene.String(required=True, description='Тема')
-        text = graphene.String(required=True, description='Текст')
-        files = graphene.List(graphene.NonNull(Upload), description='Загружаемые файлы')
 
-    @staticmethod
-    def mutate_and_get_payload(root, info: ResolveInfo, topic: str, text: str, **kwargs):
-        user = info.context.user
+@gql.type
+class SupportMutations:
+    @gql.mutation(directives=[IsAuthenticated()])
+    def support_submit(self, info: Info, input: SupportSubmitInput) -> None:
+        """Отправка письма поддержки"""
+        user = info.context.request.user
         from_email: str = os.getenv('EMAIL_HOST_USER')
         mail: EmailMultiAlternatives = EmailMultiAlternatives(
-            f'{topic}: { user.email }', text, from_email, [os.getenv('EMAIL_HOST_SUPPORT')]
+            f'{input.topic}: {user.email}', input.text, from_email, [os.getenv('EMAIL_HOST_SUPPORT')]
         )
-        if 'files' in kwargs and kwargs['files'] is not None:
-            for file in kwargs['files']:
-                mail.attach(file.name, file.file.read(), guess_type(file.name)[0])
-        return SupportSubmitMutation(success=mail.send() > 0)
-
-
-class SupportMutations(graphene.ObjectType):
-    support_submit = SupportSubmitMutation.Field(required=True)
+        for file in input.files:
+            mail.attach(file.name, file.file.read(), guess_type(file.name)[0])

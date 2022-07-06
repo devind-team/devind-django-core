@@ -9,6 +9,13 @@ def self_or_can_change(info: Info, user: AbstractUser):
         return
     raise PermissionDenied('Ошибка доступа')
 
+
+def self_or_has_perm(info: Info, user: AbstractUser, perm: str):
+    """"""
+    if user == info.context.request.user or info.context.request.user.has_perm(perm):
+        return
+    raise PermissionDenied('Ошибка доступа')
+
 # from devind_helpers.permissions import BasePermission, ModelPermission
 #
 #

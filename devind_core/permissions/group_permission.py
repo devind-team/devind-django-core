@@ -1,8 +1,8 @@
 """Проверка пользовательских разрешений групп пользователей."""
 
-from devind_helpers.permissions import ModelPermission
+from strawberry_django_plus.permissions import HasPerm
 
 
-AddGroup = ModelPermission('auth.add_group')
-ChangeGroup = ModelPermission('auth.change_group')
-DeleteGroup = ModelPermission('auth.delete_group')
+AddGroup = HasPerm('auth.add_group')
+ChangeGroup = HasPerm('auth.change_group')
+DeleteGroup = HasPerm('auth.delete_group')

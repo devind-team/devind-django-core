@@ -1,22 +1,21 @@
 from strawberry_django_plus import gql
 
-# from devind_core.schema.mutations import FileMutations, \
-#     GroupMutations, \
-#     ProfileMutations, \
-#     SettingMutations, \
-#     SupportMutations, \
-#     UserMutations
-# from devind_core.schema.types import SettingType, \
-#     ProfileType, \
-#     ProfileValueType, \
-#     SessionType, \
-#     ApplicationType, \
-#     LogRequestType, \
-#     FileType, \
-#     LogEntryType, \
-#     GroupType, \
-#     PermissionType
-#from .queries import UserQueries, ProfileQueries, GroupQueries, SessionQueries
+from devind_core.schema.mutations import UserMutations, \
+    FileMutations, \
+    SettingMutations, \
+    SupportMutations
+
+
+from devind_core.schema.types import SettingType, \
+    ProfileType, \
+    ProfileValueType, \
+    SessionType, \
+    ApplicationType, \
+    LogRequestType, \
+    FileType, \
+    LogEntryType, \
+    GroupType, \
+    PermissionType
 from .queries import GroupQueries, ProfileQueries, UserQueries, SessionQueries
 
 @gql.type
@@ -30,15 +29,15 @@ class Query(
     pass
 
 
-# class Mutation(
-#     FileMutations,
+@gql.type
+class Mutation(
+    FileMutations,
 #     GroupMutations,
 #     ProfileMutations,
-#     SettingMutations,
-#     SupportMutations,
-#     UserMutations,
-#     graphene.ObjectType
-# ):
-#     """Мутации для приложения core"""
-#
-#     pass
+    SettingMutations,
+    SupportMutations,
+    UserMutations
+):
+    """Мутации для приложения core"""
+
+    pass
