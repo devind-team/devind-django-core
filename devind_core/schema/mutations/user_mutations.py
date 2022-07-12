@@ -2,7 +2,7 @@ import json
 import re
 import datetime
 from random import randrange
-from typing import List, Optional, Type
+from typing import List, Optional, Type, TypedDict
 
 from django.core.exceptions import ValidationError
 from strawberry.file_uploads import Upload
@@ -29,14 +29,16 @@ from devind_core.models import get_file_model, \
 from devind_core.schema.types import GroupType, UserType, SessionType
 from devind_core.permissions.group_permission import ChangeGroup
 from devind_helpers.schema.types import TableType
-#from devind_helpers.decorators import permission_classes
+# from devind_helpers.decorators import permission_classes
 from devind_helpers.import_from_file import ImportFromFile
 from devind_helpers.orm_utils import get_object_or_none, get_object_or_404
-#from devind_helpers.permissions import IsAuthenticated, IsGuest
-#from devind_helpers.redis_client import redis
+# from devind_helpers.permissions import IsAuthenticated, IsGuest
+# from devind_helpers.redis_client import redis
 from devind_helpers.request import Request
 from devind_helpers.utils import convert_str_to_int
 from devind_core.permissions import self_or_can_change
+from devind_core.legacy import legacy_mutation
+
 try:
     from devind_notifications.models import Mailing
 except ModuleNotFoundError:
@@ -51,30 +53,13 @@ Session: Type[models.Model] = get_session_model()
 User: Type[models.Model] = get_user_model()
 
 
-@gql.type # todo переместить в types
-class TokenType:
-    access_token: str
-    expires_in: str
-    token_type: str
-    scope: str
-    refresh_token: str
-    user: UserType
-
-@gql.input
-class RegisterInput:
-    username: str
-    email: str
-    last_name: str
-    first_name: str
-    sir_name: str
-    birthday: datetime.date
-    password: str
-    agreement: bool
-
 @gql.type
 class UserMutations:
-    @gql.django.input_mutation
-    def get_token(self, info: Info, client_id: str, client_secret: str, grant_type: str, username: str, password: str) -> TokenType:
+    @legacy_mutation
+    def get_token(self, info: Info, client_id: str, client_secret: str, grant_type: str, username: str,
+                  password: str) -> TypedDict('', {'access_token': str | None, 'expires_in': int | None,
+                                                   'token_type': str | None, 'scope': str | None,
+                                                   'refresh_token': str | None, 'user': UserType | None}):
         request = Request(
             '/graphql',
             body=json.dumps({
@@ -100,25 +85,30 @@ class UserMutations:
             user=access_token.user
         )
 
-        return TokenType(**body_dict, user=access_token.user)
+        return {**body_dict, 'user': access_token.user}
 
-    @gql.mutation
-    def register(self, input: RegisterInput) -> None:
-        input.agreement = make_aware(datetime.datetime.now()) if input.agreement else None
-        user = User.objects.create(**vars(input))
-        user.set_password(input.password)
+    @legacy_mutation
+    def register(self, username: str, email: str, last_name: str, first_name: str, sir_name: str,
+                 birthday: datetime.date, password: str, agreement: bool) -> TypedDict('', {}):  # todo: isGuest
+        agreement = make_aware(datetime.datetime.now()) if agreement else None
+        user = User.objects.create(username=username, email=email, last_name=last_name, first_name=first_name,
+                                   sir_name=sir_name, birthday=birthday, agreement=agreement)
+        user.set_password(password)
         user.save(update_fields=('password',))
+        return {}
 
-    @gql.mutation(directives=[IsAuthenticated()])
-    def logout(self, session_id: gql.relay.GlobalID, info: Info) -> None:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def logout(self, session_id: gql.ID, info: Info) -> TypedDict('', {}):
         session: Session | None = SessionType.resolve_node(session_id)
         self_or_can_change(info, session.access_token.user)
         session.user.logout(session)
+        return {}
 
-    @gql.django.input_mutation(directives=[IsAuthenticated(), HasPerm('.add_user')])
-    def upload_users(self, info: Info, groups_id: List[int], file: Upload) -> list[UserType]: #todo union tabletype
+    @legacy_mutation(directives=[IsAuthenticated(), HasPerm('.add_user')])
+    def upload_users(self, info: Info, groups_id: List[int], file: Upload) -> TypedDict('', {
+        'users': list[UserType] | None}):  # todo union tabletype
         f: File = File.objects.create(name=file.name, src=file, user=info.context.user, deleted=True)
-        iff: ImportFromFile = ImportFromFile(User, f.src.path) #todo validator
+        iff: ImportFromFile = ImportFromFile(User, f.src.path)  # todo validator
         profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
         profile_values = []
 
@@ -133,52 +123,56 @@ class UserMutations:
                 pv.append({'value': v, 'profile_id': profile_id})
             profile_values.append(pv)
             user.pop('profile')
-        success, errors = (True, []) # todo iff.validate()
+        success, errors = (True, [])  # todo iff.validate()
 
         if success:
             users: List[User] = iff.run()
             groups: List[Group] = Group.objects.filter(pk__in=groups_id).all()
 
             for i, user in enumerate(users):
-                ProfileValue.objects.bulk_create([ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
+                ProfileValue.objects.bulk_create(
+                    [ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
                 user.groups.add(*groups)
-            return users #todo
-        else: pass #todo
-            #return UploadUsersMutation(
-            #    success=False,
-            #    errors=[
-            #        RowFieldErrorType(row=row, errors=ErrorFieldType.from_validator(error)) for row, error in errors
-            #    ],
-            #    table=TableType.from_iff(iff)
-            #)
+            return {'users': users}  # todo
+        else:
+            pass  # todo
+        # return UploadUsersMutation(
+        #    success=False,
+        #    errors=[
+        #        RowFieldErrorType(row=row, errors=ErrorFieldType.from_validator(error)) for row, error in errors
+        #    ],
+        #    table=TableType.from_iff(iff)
+        # )
 
-    @gql.django.input_mutation(directives=[IsAuthenticated(), HasPerm('auth.change_group')])
-    def change_user_groups(self, user_id: gql.relay.GlobalID, groups_id: List[int]) -> list[GroupType]:
+    @legacy_mutation(directives=[IsAuthenticated(), HasPerm('auth.change_group')])
+    def change_user_groups(self, user_id: gql.ID, groups_id: List[int]) -> TypedDict('', {
+        'groups': list[GroupType] | None}):
         user: User | None = UserType.resolve_node(user_id)
         if user is None:
             raise ValidationError({'user': 'Пользователь не найден'})
         groups = Group.objects.filter(pk__in=groups_id).all()
         user.groups.set(groups)
-        return groups
+        return {'groups': groups}
 
-    @gql.mutation(directives=[IsAuthenticated()])
-    def delete_sessions(self, info: Info) -> None:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def delete_sessions(self, dummy: int | None, info: Info) -> TypedDict('', {}):
         me: User = info.context.request.user
         current_session: Session = info.context.request.session
         for session in Session.objects.filter(access_token__user=me).exclude(pk=current_session.pk).all():
             me.logout(session)
+        return {}
 
-    @gql.mutation(directives=[IsAuthenticated()])
-    def change_avatar(self, info: Info, user_id: gql.relay.GlobalID, file: Upload) -> str:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def change_avatar(self, info: Info, user_id: gql.ID, file: Upload) -> TypedDict('', {'avatar': str | None}):
         user: User | None = UserType.resolve_node(user_id)
         self_or_can_change(info, user)
         user.avatar.delete(save=False)
         user.avatar = file
         user.save(update_fields=('avatar',))
-        return user.avatar
+        return {'avatar': user.avatar}
 
-    @gql.django.input_mutation(directives=[IsAuthenticated()])
-    def change_password(self, info: Info, password: str, password_new: str) -> UserType:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def change_password(self, info: Info, password: str, password_new: str) -> TypedDict('', {}):
         user: User = info.context.request.user
         self_or_can_change(info, user)
         if not user.check_password(password):
@@ -192,10 +186,11 @@ class UserMutations:
                 text=render_to_string('mail/auth/changed_password.html', {'user': user}, request=info.context),
                 user=user,
             ).dispatch(True)
-        return user
+        return {}
 
-    @gql.django.input_mutation(directives=[IsAuthenticated()])
-    def change_user_props(self, info: Info, user_id: gql.relay.GlobalID, email: str, first_name: str, last_name: str, sir_name: str, birthday: datetime.date) -> UserType:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def change_user_props(self, info: Info, user_id: gql.ID, email: str, first_name: str, last_name: str,
+                          sir_name: str, birthday: datetime.date) -> TypedDict('', {'user': UserType | None}):
         user: User = UserType.resolve_node(user_id, required=True)
         self_or_can_change(info, user)
         user.email = email
@@ -204,10 +199,10 @@ class UserMutations:
         user.sir_name = sir_name
         user.birthday = birthday
         user.save(update_fields=('email', 'first_name', 'last_name', 'sir_name', 'birthday',))
-        return user
+        return {'user': user}
 
-    @gql.mutation
-    def restore_password(self, info: Info, token: str, password: str) -> None:
+    @legacy_mutation
+    def restore_password(self, info: Info, token: str, password: str) -> TypedDict('', {}):
         reset_password: ResetPassword = get_object_or_none(ResetPassword, token=token, password__isnull=True)
         if reset_password is None:
             raise ValidationError({'token': 'Токен не найден'})
@@ -228,10 +223,10 @@ class UserMutations:
             ),
             user=reset_password.user,
         ).dispatch(True)
-        return # todo
+        return {}
 
-    @gql.mutation
-    def recovery_password(self, info: Info, email: str) -> None:
+    @legacy_mutation
+    def recovery_password(self, info: Info, email: str) -> TypedDict('', {}):
         error_email = ValidationError({'email': 'Указанный email не является действительным'})
 
         if not re.findall(r'^[\w\.-]+@[\w\.-]+(\.[\w]+)+$', email):
@@ -250,10 +245,10 @@ class UserMutations:
             ),
             user=user,
         ).dispatch()
-        return #todo
+        return {}
 
-    @gql.mutation(directives=[IsAuthenticated()])
-    def request_code(self, info: Info, email: str) -> None:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def request_code(self, info: Info, email: str) -> TypedDict('', {}):
         if not re.findall(r'^[\w\.-]+@[\w\.-]+(\.[\w]+)+$', email):
             raise ValidationError({'email': 'Указанный email не является действительным'})
 
@@ -267,15 +262,15 @@ class UserMutations:
             text=render_to_string('mail/auth/request_code.html', {'user': user, 'code': code}, request=info.context),
             user=user,
         ).dispatch()
-        return # todo
+        return {}
 
-    @gql.django.input_mutation(directives=[IsAuthenticated()])
-    def confirm_email(self, info: Info, email: str, code: str) -> UserType:
+    @legacy_mutation(directives=[IsAuthenticated()])
+    def confirm_email(self, info: Info, email: str, code: str) -> TypedDict('', {'user': UserType | None}):
         user: User = info.context.request.user
         code: Optional[int] = convert_str_to_int(code)
         if not code:
             raise ValidationError({'code': 'Код состоит из цифр'})
-        #saved_code = redis.get(f'user.{user.pk}.request_code') todo
+        # saved_code = redis.get(f'user.{user.pk}.request_code') todo
         # if saved_code is None or code != int(saved_code):
         #     return ConfirmEmailMutation(
         #         success=False,
@@ -291,91 +286,7 @@ class UserMutations:
             text=render_to_string('mail/auth/confirm_email.html', {'user': user}, request=info.context),
             user=user,
         ).dispatch(True)
-        return user
-
-
-# class GetTokenMutation(BaseMutation):
-#     """Мутация для получения токена авторизации."""
-#
-#     class Input:
-#         """Входные данные."""
-#         client_id = graphene.String(description='Открытый идентификатор приложения')
-#         client_secret = graphene.String(description='Секретный идентификатор приложения')
-#         grant_type = graphene.String(description='Тип авторизации')
-#         username = graphene.String(description='Имя пользователя')
-#         password = graphene.String(description='Пароль')
-#
-#     access_token = graphene.String(description='Токен доступа')
-#     expires_in = graphene.Int(description='Время жизни токена')
-#     token_type = graphene.String(description='Тип токена')
-#     scope = graphene.String(description='Разрешения')
-#     refresh_token = graphene.String(description='Токен обновления')
-#     user = graphene.Field(UserType, description='Авторизованный пользователь')
-#
-#     @staticmethod
-#     def mutate_and_get_payload(root, info: ResolveInfo, **kwargs):
-#         request = Request(
-#             '/graphql',
-#             body=json.dumps(kwargs).encode('utf-8'),
-#             headers=info.context.headers,
-#             meta=info.context.META
-#         )
-#         url, header, body, status = TokenView().create_token_response(request)
-#         if status != 200:
-#             return GetTokenMutation(success=False, errors=[ErrorFieldType('username', ['Неверный логин или пароль'])])
-#         body_dict = json.loads(body)
-#         ip: str = info.context.META['REMOTE_ADDR']
-#         user_agent: str = info.context.META['HTTP_USER_AGENT']
-#         access_token: AccessToken = AccessToken.objects.get(token=body_dict['access_token'])
-#         Session.objects.create(
-#             ip=ip,
-#             user_agent=user_agent,
-#             access_token=access_token,
-#             user=access_token.user
-#         )
-#         return GetTokenMutation(**{**body_dict, 'user': access_token.user})
-
-
-# class RegisterMutation(BaseMutation):
-#     """Мутация регистрации новых пользователей."""
-#     class Input:
-#         username = graphene.String(required=True, description='Логин')
-#         email = graphene.String(required=True, description='Email')
-#         last_name = graphene.String(required=True, description='Фамилия')
-#         first_name = graphene.String(required=True, description='Имя')
-#         sir_name = graphene.String(description='Отчество')
-#         birthday = graphene.Date(required=True, description='Дата рождения')
-#         password = graphene.String(required=True, description='Пароль')
-#         agreement = graphene.Boolean(required=True, description='Согласие на обработку персональных данных')
-#
-#     @staticmethod
-#     @permission_classes([IsGuest])
-#     def mutate_and_get_payload(root, info: ResolveInfo, *args, **kwargs):
-#         validator = UserValidator(kwargs)
-#         if validator.validate():
-#             kwargs['agreement'] = make_aware(datetime.now()) if kwargs['agreement'] else None
-#             user = User.objects.create(**kwargs)
-#             user.set_password(kwargs['password'])
-#             user.save(update_fields=('password',))
-#         else:
-#             return RegisterMutation(success=False, errors=ErrorFieldType.from_validator(validator.get_message()))
-#         return RegisterMutation()
-
-
-# class LogoutMutation(BaseMutation):
-#     """Мутация выхода"""
-#     class Input:
-#         session_id = graphene.ID(required=True, description='Идентификатор сессии')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser, DeleteUser])
-#     def mutate_and_get_payload(root, info: ResolveInfo, session_id: str):
-#         _, pk = from_global_id(session_id)
-#         session: Optional[Session] = get_object_or_none(Session, pk=pk)
-#         info.context.check_object_permissions(info.context, session.access_token.user)
-#         session.user.logout(session)
-#         return LogoutMutation()
-
+        return {'user': user}
 
 # class UploadUsersMutation(graphene.relay.ClientIDMutation):
 #     """Мутация для загрузки пользователей из файла excel | csv."""
@@ -384,300 +295,45 @@ class UserMutations:
 #         groups_id = graphene.List(graphene.Int, description='Для загрузки пользователей')
 #         file = Upload(required=True, description='Источник данных, файл xlsx или csv')
 #
-    # success = graphene.Boolean(required=True, description='Успех мутации')
-    # errors = graphene.List(RowFieldErrorType, required=True, description='Ошибки валидации')
-    # table = graphene.Field(TableType, description='Валидируемый документ')
-    # users = graphene.List(UserType, description='Загруженные пользователи')
-    #
-    # @staticmethod
-    # @permission_classes([IsAuthenticated, AddUser])
-    # def mutate_and_get_payload(root, info: ResolveInfo, groups_id: List[int], file: InMemoryUploadedFile):
-    #     f: File = File.objects.create(name=file.name, src=file, user=info.context.user, deleted=True)
-    #     iff: ImportFromFile = ImportFromFile(User, f.src.path, UserValidator)
-    #     profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
-    #     profile_values = []
-    #
-    #     for user in iff.items:
-    #         pv = []
-    #         for k, v in user['profile'].items() if 'profile' in user else ():
-    #             profile_id = next((x['id'] for x in profiles if x['code'] == k), None)
-    #             if v is None:
-    #                 continue
-    #             if profile_id is None:
-    #                 raise FieldDoesNotExist(f'Неизвестный столбец {k}')
-    #             pv.append({'value': v, 'profile_id': profile_id})
-    #         profile_values.append(pv)
-    #         user.pop('profile')
-    #     success, errors = iff.validate()
-    #
-    #     if success:
-    #         users: List[User] = iff.run()
-    #         groups: List[Group] = Group.objects.filter(pk__in=groups_id).all()
-    #
-    #         for i, user in enumerate(users):
-    #             ProfileValue.objects.bulk_create([ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
-    #             user.groups.add(*groups)
-    #         return UploadUsersMutation(success=True, errors=[], users=users)
-    #     else:
-    #         return UploadUsersMutation(
-    #             success=False,
-    #             errors=[
-    #                 RowFieldErrorType(row=row, errors=ErrorFieldType.from_validator(error)) for row, error in errors
-    #             ],
-    #             table=TableType.from_iff(iff)
-    #         )
-
-
-# class ChangeUserGroupsMutation(BaseMutation):
-#     """Мутация для изменения групп конкретного пользователя."""
-#     class Input:
-#         user_id: graphene.ID = graphene.ID(required=True, description='Идентификатор пользователя')
-#         groups_id: graphene.List = graphene.List(graphene.Int, required=True, description='Идентификатор групп')
+# success = graphene.Boolean(required=True, description='Успех мутации')
+# errors = graphene.List(RowFieldErrorType, required=True, description='Ошибки валидации')
+# table = graphene.Field(TableType, description='Валидируемый документ')
+# users = graphene.List(UserType, description='Загруженные пользователи')
 #
-#     groups = graphene.List(GroupType, description='Новые группы')
+# @staticmethod
+# @permission_classes([IsAuthenticated, AddUser])
+# def mutate_and_get_payload(root, info: ResolveInfo, groups_id: List[int], file: InMemoryUploadedFile):
+#     f: File = File.objects.create(name=file.name, src=file, user=info.context.user, deleted=True)
+#     iff: ImportFromFile = ImportFromFile(User, f.src.path, UserValidator)
+#     profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
+#     profile_values = []
 #
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser, ChangeGroup])
-#     def mutate_and_get_payload(root, info: ResolveInfo, user_id: str, groups_id: List[int]):
-#         user_id = from_global_id(user_id)[1]
-#         user: Optional[User] = get_object_or_none(User, pk=user_id)
-#         if user is None:
-#             return ChangeUserGroupsMutation(success=False, errors=[ErrorFieldType('user', ['Пользователь не найден'])])
+#     for user in iff.items:
+#         pv = []
+#         for k, v in user['profile'].items() if 'profile' in user else ():
+#             profile_id = next((x['id'] for x in profiles if x['code'] == k), None)
+#             if v is None:
+#                 continue
+#             if profile_id is None:
+#                 raise FieldDoesNotExist(f'Неизвестный столбец {k}')
+#             pv.append({'value': v, 'profile_id': profile_id})
+#         profile_values.append(pv)
+#         user.pop('profile')
+#     success, errors = iff.validate()
+#
+#     if success:
+#         users: List[User] = iff.run()
 #         groups: List[Group] = Group.objects.filter(pk__in=groups_id).all()
-#         user.groups.set(groups)
-#         return ChangeUserGroupsMutation(groups=groups)
-
-
-# class DeleteSessionsMutation(BaseMutation):
-#     """Мутация для удаления всех сессий кроме текущей."""
-#     class Input:
-#         pass
 #
-#     @staticmethod
-#     @permission_classes([IsAuthenticated])
-#     def mutate_and_get_payload(root, info: ResolveInfo):
-#         me: User = info.context.user
-#         current_session: Session = info.context.session
-#         for session in Session.objects.filter(access_token__user=me).exclude(pk=current_session.pk).all():
-#             me.logout(session)
-#         return DeleteSessionsMutation()
-
-
-# class ChangeAvatarMutation(BaseMutation):
-#     """Мутация для изменения аватара пользователя."""
-#     class Input:
-#         user_id = graphene.ID(required=True, description='Идентификатор пользователя')
-#         file = Upload(required=True, description='Загружаемый файл аватара')
-#
-#     avatar = graphene.String(required=True, description='Загруженный аватар')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser])
-#     def mutate_and_get_payload(root, info: ResolveInfo, user_id: str, file: InMemoryUploadedFile):
-#         user: Optional[User] = get_object_or_none(User, pk=from_global_id(user_id)[1])
-#         info.context.check_object_permissions(info.context, user)
-#         user.avatar.delete(save=False)
-#         user.avatar = file
-#         user.save(update_fields=('avatar',))
-#         return ChangeAvatarMutation(avatar=user.avatar)
-
-
-# class ChangePasswordMutation(BaseMutation):
-#     """Мутация для изменения пароля пользователя."""
-#
-#     class Input:
-#         password: graphene.String = graphene.String(required=True, description='Старый пароль')
-#         password_new: graphene.String = graphene.String(required=True, description='Новый пароль')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser, DeleteUser])
-#     def mutate_and_get_payload(root, info: ResolveInfo, password: str, password_new: str):
-#         user: User = info.context.user
-#         info.context.check_object_permissions(info.context, user)
-#         if not user.check_password(password):
-#             return ChangePasswordMutation(success=False, errors=[ErrorFieldType('password', ['Введенный пароль неверный'])])
-#         else:
-#             user.set_password(password_new)
-#             user.save(update_fields=('password',))
-#             Mailing and Mailing.objects.create(
-#                 address=user.email,
-#                 header='Изменение пароля',
-#                 text=render_to_string('mail/auth/changed_password.html', {'user': user}, request=info.context),
-#                 user=user,
-#             ).dispatch(True)
-#         return ChangePasswordMutation()
-
-
-# class ChangeUserPropsMutation(BaseMutation):
-#     """Мутация для изменения полей пользователя."""
-#     class Input:
-#         user_id = graphene.ID(required=True, description='Идентификатор пользователя')
-#         email = graphene.String(required=True, description='Email')
-#         first_name = graphene.String(required=True, description='Имя')
-#         last_name = graphene.String(required=True, description='Фамилия')
-#         sir_name = graphene.String(required=True, description='Отчество')
-#         birthday = graphene.Date(required=True, description='Дата рождения')
-#
-#     user = graphene.Field(UserType, required=True, description='Измененный пользователь')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated, ChangeUser])
-#     def mutate_and_get_payload(root, info: ResolveInfo, **kwargs):
-#         _, pk = from_global_id(kwargs['user_id'])
-#         user: User = get_object_or_404(User, pk=pk)
-#         info.context.check_object_permissions(info.context, user)
-#         user.email = kwargs['email']
-#         user.first_name = kwargs['first_name']
-#         user.last_name = kwargs['last_name']
-#         user.sir_name = kwargs['sir_name']
-#         user.birthday = kwargs['birthday']
-#         user.save(update_fields=('email', 'first_name', 'last_name', 'sir_name', 'birthday',))
-#         return ChangeUserPropsMutation(user=user)
-
-
-# class RestorePasswordMutation(BaseMutation):
-#     """Мутация для сброса пароля пользователя."""
-#
-#     class Input:
-#         token = graphene.String(required=True, description='Токен')
-#         password = graphene.String(required=True, description='Пароль')
-#
-#     @staticmethod
-#     def mutate_and_get_payload(root, info: ResolveInfo, token: str, password: str):
-#         reset_password: ResetPassword = get_object_or_none(ResetPassword, token=token, password__isnull=True)
-#         if reset_password is None:
-#             return RestorePasswordMutation(success=False, errors=[ErrorFieldType('token', ['Токен не найден'])])
-#         if len(password) < 8:
-#             return RestorePasswordMutation(success=False, errors=[ErrorFieldType('password', ['Длина пароля меньше 4 символов'])])
-#         reset_password.password = password
-#         reset_password.user.set_password(password)
-#         with transaction.atomic():
-#             reset_password.user.save(update_fields=('password',))
-#             reset_password.save(update_fields=('password',))
-#         Mailing and Mailing.objects.create(
-#             address=reset_password.user.email,
-#             header='Изменение пароля',
-#             text=render_to_string(
-#                 'mail/auth/changed_password.html',
-#                 {'user': reset_password.user},
-#                 request=info.context
-#             ),
-#             user=reset_password.user,
-#         ).dispatch(True)
-#         return RestorePasswordMutation()
-
-
-# class RecoveryPasswordMutation(BaseMutation):
-#     """Мутация для сброса пароля пользователя."""
-#
-#     class Input:
-#         email = graphene.String(required=True, description='Email адрес')
-#
-#     @staticmethod
-#     def mutate_and_get_payload(root, info: ResolveInfo, email: str):
-#         error_email = RecoveryPasswordMutation(
+#         for i, user in enumerate(users):
+#             ProfileValue.objects.bulk_create([ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
+#             user.groups.add(*groups)
+#         return UploadUsersMutation(success=True, errors=[], users=users)
+#     else:
+#         return UploadUsersMutation(
 #             success=False,
-#             errors=[ErrorFieldType('email', [f'Указанный email не является действительным'])]
+#             errors=[
+#                 RowFieldErrorType(row=row, errors=ErrorFieldType.from_validator(error)) for row, error in errors
+#             ],
+#             table=TableType.from_iff(iff)
 #         )
-#
-#         if not re.findall(r'^[\w\.-]+@[\w\.-]+(\.[\w]+)+$', email):
-#             return error_email
-#         user: User = get_object_or_none(User, email=email)
-#         if user is None:
-#             return error_email
-#         token: str = user.get_token()
-#         Mailing and Mailing.objects.create(
-#             address=email,
-#             header='Восстановление пароля',
-#             text=render_to_string(
-#                 'mail/auth/recovery_password.html',
-#                 {'user': user, 'token': token},
-#                 request=info.context
-#             ),
-#             user=user,
-#         ).dispatch()
-#         return RecoveryPasswordMutation()
-
-
-# class RequestCodeMutation(BaseMutation):
-#     """Отправка email с кодом на электронную почту."""
-#     class Input:
-#         email = graphene.String(required=True, description='Email адрес')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated])
-#     def mutate_and_get_payload(root, info: ResolveInfo, email: str, *args, **kwargs):
-#
-#         if not re.findall(r'^[\w\.-]+@[\w\.-]+(\.[\w]+)+$', email):
-#             return RequestCodeMutation(
-#                 success=False,
-#                 errors=[ErrorFieldType('email', [f'Указанный email не является действительным'])]
-#             )
-#
-#         user: User = info.context.user
-#
-#         code: int = randrange(10 ** 5, 10 ** 6)
-#         redis.set(f'user.{user.pk}.request_code', code, ex=60)   # Время жизни 60 секунд
-#         Mailing and Mailing.objects.create(
-#             address=email,
-#             header='Верификация аккаунта',
-#             text=render_to_string('mail/auth/request_code.html', {'user': user, 'code': code}, request=info.context),
-#             user=user,
-#         ).dispatch()
-#         return RequestCodeMutation()
-
-
-# class ConfirmEmailMutation(BaseMutation):
-#     """Подтверждение кода."""
-#     class Input:
-#         email = graphene.String(required=True, description='Email адрес')
-#         code = graphene.String(required=True, description='Код, полученный по Email')
-#
-#     user = graphene.Field(UserType, description='Пользователь')
-#
-#     @staticmethod
-#     @permission_classes([IsAuthenticated])
-#     def mutate_and_get_payload(root, info: ResolveInfo, email: str, code: str):
-#         user: User = info.context.user
-#         code: Optional[int] = convert_str_to_int(code)
-#         if not code:
-#             return ConfirmEmailMutation(
-#                 success=False,
-#                 errors=[ErrorFieldType('code', [f'Код состоит из цифр'])]
-#             )
-#         saved_code = redis.get(f'user.{user.pk}.request_code')
-#         if saved_code is None or code != int(saved_code):
-#             return ConfirmEmailMutation(
-#                 success=False,
-#                 errors=[ErrorFieldType('code', [f'Указанный код не является действительным'])]
-#             )
-#         if not re.findall(r'^[\w\.-]+@[\w\.-]+(\.[\w]+)+$', email):
-#             return ConfirmEmailMutation(
-#                 success=False,
-#                 errors=[ErrorFieldType('code', [f'Указанный email не является действительным: {email}'])]
-#             )
-#         user.email, user.agreement = email, make_aware(datetime.now())
-#         user.save(update_fields=('email', 'agreement',))
-#         Mailing and Mailing.objects.create(
-#             address=email,
-#             header='Верификация аккаунта',
-#             text=render_to_string('mail/auth/confirm_email.html', {'user': user}, request=info.context),
-#             user=user,
-#         ).dispatch(True)
-#         return ConfirmEmailMutation(user=user)
-
-
-# class UserMutations(graphene.ObjectType):
-#     upload_users = UploadUsersMutation.Field(required=True)
-#     change_avatar = ChangeAvatarMutation.Field(required=True)
-#     change_password = ChangePasswordMutation.Field(required=True)
-#     change_user_props = ChangeUserPropsMutation.Field(required=True)
-#     delete_sessions = DeleteSessionsMutation.Field(required=True)
-#     register = RegisterMutation.Field(required=True)
-#     get_token = GetTokenMutation.Field(required=True)
-#     logout = LogoutMutation.Field(required=True)
-#     recovery_password = RecoveryPasswordMutation.Field(required=True)
-#     restore_password = RestorePasswordMutation.Field(required=True)
-#     change_user_groups = ChangeUserGroupsMutation.Field(required=True)
-#     request_code = RequestCodeMutation.Field(required=True)
-#     confirm_email = ConfirmEmailMutation.Field(required=True)

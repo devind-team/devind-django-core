@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'auditlog',
     'devind_core',
     'apps.core',
-    'django_seed'
 ]
 
 MIDDLEWARE = [

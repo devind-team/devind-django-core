@@ -68,7 +68,7 @@ class ContentTypeType:
 #         model = ContentType
 
 @gql.django.type(Group)
-class GroupType(gql.relay.Node):
+class GroupType:
     id: gql.auto
     name: gql.auto
     permissions: 'list[PermissionType]'

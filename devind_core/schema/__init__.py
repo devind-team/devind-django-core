@@ -1,10 +1,12 @@
 from strawberry_django_plus import gql
 
-from devind_core.schema.mutations import UserMutations, \
-    FileMutations, \
-    SettingMutations, \
-    SupportMutations
-
+from devind_core.schema.mutations import (
+    UserMutations,
+    FileMutations,
+    SettingMutations,
+    SupportMutations,
+    GroupMutations
+)
 
 from devind_core.schema.types import SettingType, \
     ProfileType, \
@@ -17,6 +19,7 @@ from devind_core.schema.types import SettingType, \
     GroupType, \
     PermissionType
 from .queries import GroupQueries, ProfileQueries, UserQueries, SessionQueries
+
 
 @gql.type
 class Query(
@@ -32,8 +35,8 @@ class Query(
 @gql.type
 class Mutation(
     FileMutations,
-#     GroupMutations,
-#     ProfileMutations,
+    GroupMutations,
+    #     ProfileMutations,
     SettingMutations,
     SupportMutations,
     UserMutations
