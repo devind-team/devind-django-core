@@ -1,3 +1,4 @@
+from typing import Iterable
 from strawberry_django_plus import gql
 from strawberry.types import Info
 from strawberry_django_plus.permissions import IsAuthenticated
@@ -23,7 +24,7 @@ class SessionQueries:
     applications: list[ApplicationType] = gql.django.field(directives=[IsAuthenticated()], description='Приложения')
 
     @gql.field(directives=[IsAuthenticated()])
-    def sessions(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> list[SessionType]:
+    def sessions(self, info: Info, user_id: gql.ID | None = None) -> list[SessionType]:
         """Доступные сессии"""
         if user_id is not None:
             user: User = UserType.resolve_node(user_id)
@@ -32,8 +33,8 @@ class SessionQueries:
         self_or_can_change(info, user)
         return Session.objects.filter(access_token__user=user).order_by('-access_token')
 
-    @gql.field(directives=[IsAuthenticated()])
-    def log_requests(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> list[LogRequestType]:
+    @gql.relay.connection(directives=[IsAuthenticated()])
+    def log_requests(self, info: Info, user_id: gql.ID | None = None) -> Iterable[LogRequestType]:
         if user_id is not None:
             user: User = UserType.resolve_node(user_id)
         else:
@@ -41,8 +42,8 @@ class SessionQueries:
         self_or_can_change(info, user)
         return LogRequest.objects.filter(session__user=user)
 
-    @gql.field(directives=[IsAuthenticated()])
-    def log_entry(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> list[LogEntryType]:
+    @gql.relay.connection(directives=[IsAuthenticated()])
+    def log_entry(self, info: Info, user_id: gql.ID | None = None) -> Iterable[LogEntryType]:
         """Возвращаем логгированные Entry. Либо это я, либо имею право."""
         user: User = UserType.resolve_node(user_id) \
             if user_id is not None \

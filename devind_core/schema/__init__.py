@@ -5,7 +5,8 @@ from devind_core.schema.mutations import (
     FileMutations,
     SettingMutations,
     SupportMutations,
-    GroupMutations
+    GroupMutations,
+    ProfileMutations
 )
 
 from devind_core.schema.types import SettingType, \
@@ -36,7 +37,7 @@ class Query(
 class Mutation(
     FileMutations,
     GroupMutations,
-    #     ProfileMutations,
+    ProfileMutations,
     SettingMutations,
     SupportMutations,
     UserMutations

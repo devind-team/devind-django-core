@@ -27,8 +27,8 @@ from devind_core.models import get_file_model, \
     get_session_model
 
 from devind_core.schema.types import GroupType, UserType, SessionType
-from devind_core.permissions.group_permission import ChangeGroup
-from devind_helpers.schema.types import TableType
+#from devind_core.permissions.group_permission import ChangeGroup
+#from devind_helpers.schema.types import TableType
 # from devind_helpers.decorators import permission_classes
 from devind_helpers.import_from_file import ImportFromFile
 from devind_helpers.orm_utils import get_object_or_none, get_object_or_404
@@ -104,38 +104,38 @@ class UserMutations:
         session.user.logout(session)
         return {}
 
-    @legacy_mutation(directives=[IsAuthenticated(), HasPerm('.add_user')])
+    @legacy_mutation(directives=[IsAuthenticated(), HasPerm('core.add_user')])
     def upload_users(self, info: Info, groups_id: List[int], file: Upload) -> TypedDict('', {
         'users': list[UserType] | None}):  # todo union tabletype
-        f: File = File.objects.create(name=file.name, src=file, user=info.context.user, deleted=True)
+        f: File = File.objects.create(name=file.name, src=file, user=info.context.request.user, deleted=True)
         iff: ImportFromFile = ImportFromFile(User, f.src.path)  # todo validator
         profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
         profile_values = []
 
         for user in iff.items:
             pv = []
-            for k, v in user['profile'].items() if 'profile' in user else ():
-                profile_id = next((x['id'] for x in profiles if x['code'] == k), None)
-                if v is None:
-                    continue
-                if profile_id is None:
-                    raise FieldDoesNotExist(f'Неизвестный столбец {k}')
-                pv.append({'value': v, 'profile_id': profile_id})
-            profile_values.append(pv)
-            user.pop('profile')
-        success, errors = (True, [])  # todo iff.validate()
+            if 'profile' in user:
+                for k, v in user['profile'].items():
+                    profile_id = next((x['id'] for x in profiles if x['code'] == k), None)
+                    if v is None:
+                        continue
+                    if profile_id is None:
+                        raise FieldDoesNotExist(f'Неизвестный столбец {k}')
+                    pv.append({'value': v, 'profile_id': profile_id})
+                profile_values.append(pv)
+                user.pop('profile')
+        #success, errors = iff.validate()
 
-        if success:
-            users: List[User] = iff.run()
-            groups: List[Group] = Group.objects.filter(pk__in=groups_id).all()
+        #if success:
+        users: list[User] = iff.run()
+        groups: list[Group] = Group.objects.filter(pk__in=groups_id).all()
 
-            for i, user in enumerate(users):
+        for i, user in enumerate(users):
+            if len(profile_values) > 0:
                 ProfileValue.objects.bulk_create(
                     [ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
-                user.groups.add(*groups)
-            return {'users': users}  # todo
-        else:
-            pass  # todo
+            user.groups.add(*groups)
+        return {'users': users}  # todo
         # return UploadUsersMutation(
         #    success=False,
         #    errors=[
@@ -287,53 +287,3 @@ class UserMutations:
             user=user,
         ).dispatch(True)
         return {'user': user}
-
-# class UploadUsersMutation(graphene.relay.ClientIDMutation):
-#     """Мутация для загрузки пользователей из файла excel | csv."""
-#
-#     class Input:
-#         groups_id = graphene.List(graphene.Int, description='Для загрузки пользователей')
-#         file = Upload(required=True, description='Источник данных, файл xlsx или csv')
-#
-# success = graphene.Boolean(required=True, description='Успех мутации')
-# errors = graphene.List(RowFieldErrorType, required=True, description='Ошибки валидации')
-# table = graphene.Field(TableType, description='Валидируемый документ')
-# users = graphene.List(UserType, description='Загруженные пользователи')
-#
-# @staticmethod
-# @permission_classes([IsAuthenticated, AddUser])
-# def mutate_and_get_payload(root, info: ResolveInfo, groups_id: List[int], file: InMemoryUploadedFile):
-#     f: File = File.objects.create(name=file.name, src=file, user=info.context.user, deleted=True)
-#     iff: ImportFromFile = ImportFromFile(User, f.src.path, UserValidator)
-#     profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
-#     profile_values = []
-#
-#     for user in iff.items:
-#         pv = []
-#         for k, v in user['profile'].items() if 'profile' in user else ():
-#             profile_id = next((x['id'] for x in profiles if x['code'] == k), None)
-#             if v is None:
-#                 continue
-#             if profile_id is None:
-#                 raise FieldDoesNotExist(f'Неизвестный столбец {k}')
-#             pv.append({'value': v, 'profile_id': profile_id})
-#         profile_values.append(pv)
-#         user.pop('profile')
-#     success, errors = iff.validate()
-#
-#     if success:
-#         users: List[User] = iff.run()
-#         groups: List[Group] = Group.objects.filter(pk__in=groups_id).all()
-#
-#         for i, user in enumerate(users):
-#             ProfileValue.objects.bulk_create([ProfileValue(user_id=user.id, **value) for value in profile_values[i]])
-#             user.groups.add(*groups)
-#         return UploadUsersMutation(success=True, errors=[], users=users)
-#     else:
-#         return UploadUsersMutation(
-#             success=False,
-#             errors=[
-#                 RowFieldErrorType(row=row, errors=ErrorFieldType.from_validator(error)) for row, error in errors
-#             ],
-#             table=TableType.from_iff(iff)
-#         )

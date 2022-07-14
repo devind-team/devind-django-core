@@ -1,6 +1,7 @@
 from strawberry_django_plus import gql
 from strawberry.types import Info
 from strawberry_django_plus.permissions import IsAuthenticated
+from typing import Iterable
 
 from django.contrib.auth import get_user_model
 from django.db import models
@@ -36,7 +37,6 @@ class TokenType:
 class UserQueries:
 
     users: gql.relay.Connection[UserType] = gql.django.connection(directives=[IsAuthenticated()])
-    user: UserType | None = gql.django.node(directives=[IsAuthenticated()]) # todo: ломать api еще больше ради простоты?
     settings: list[SettingType] = gql.django.field(description='Настройки приложения')
 
     @gql.django.field
@@ -44,12 +44,12 @@ class UserQueries:
         """Информация обо мне"""
         return hasattr(info.context.request, 'user') and info.context.request.user or None
 
-    #@gql.django.field(directives=[IsAuthenticated()])
-    #def user(self, user_id: gql.relay.GlobalID) -> UserType | None:
-    #    return UserType.resolve_node(user_id)
+    @gql.django.field(directives=[IsAuthenticated()])
+    def user(self, user_id: gql.ID) -> UserType | None:
+        return UserType.resolve_node(user_id)
 
     @gql.django.field
-    def user_information(self, user_id: gql.relay.GlobalID) -> UserType | None:
+    def user_information(self, user_id: gql.ID) -> UserType | None:
         """Доступная информация о пользователе"""
         user: User = UserType.resolve_node(user_id, required=True)
         return user if convert_str_to_bool(user.get_settings('USER_PUBLIC')) else None
@@ -60,12 +60,12 @@ class UserQueries:
         return Setting.objects.exists()
 
     @gql.django.field
-    def settings_values(self, user_id: gql.relay.GlobalID) -> list[SettingValueType]:
+    def settings_values(self, user_id: gql.ID) -> list[SettingValueType]:
         user: User = UserType.resolve_node(user_id, required=True)
         return SettingValue.objects.filter(user=user)
 
-    @gql.django.field(directives=[IsAuthenticated()])
-    def files(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> gql.relay.Connection[FileType]:
+    @gql.relay.connection(directives=[IsAuthenticated()])
+    def files(self, info: Info, user_id: gql.ID | None = None) -> Iterable[FileType]:
         """Разрешение выгрузки файлов """
 
         if user_id is not None:
