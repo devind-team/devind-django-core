@@ -15,13 +15,6 @@ Setting: models.Model = get_setting_model()
 SettingValue: models.Model = get_setting_value_model()
 File: models.Model = get_file_model()
 
-from devind_helpers.request import Request
-from oauth2_provider.views.base import TokenView
-from django.core.exceptions import ValidationError
-import json
-from oauth2_provider.models import AccessToken
-from devind_core.models import Session
-
 
 @gql.type
 class TokenType:
@@ -45,11 +38,11 @@ class UserQueries:
         return hasattr(info.context.request, 'user') and info.context.request.user or None
 
     @gql.django.field(directives=[IsAuthenticated()])
-    def user(self, user_id: gql.ID) -> UserType | None:
+    def user(self, user_id: gql.relay.GlobalID) -> UserType | None:
         return UserType.resolve_node(user_id)
 
     @gql.django.field
-    def user_information(self, user_id: gql.ID) -> UserType | None:
+    def user_information(self, user_id: gql.relay.GlobalID) -> UserType | None:
         """Доступная информация о пользователе"""
         user: User = UserType.resolve_node(user_id, required=True)
         return user if convert_str_to_bool(user.get_settings('USER_PUBLIC')) else None
@@ -60,12 +53,12 @@ class UserQueries:
         return Setting.objects.exists()
 
     @gql.django.field
-    def settings_values(self, user_id: gql.ID) -> list[SettingValueType]:
+    def settings_values(self, user_id: gql.relay.GlobalID) -> list[SettingValueType]:
         user: User = UserType.resolve_node(user_id, required=True)
         return SettingValue.objects.filter(user=user)
 
-    @gql.relay.connection(directives=[IsAuthenticated()])
-    def files(self, info: Info, user_id: gql.ID | None = None) -> Iterable[FileType]:
+    @gql.django.connection(directives=[IsAuthenticated()])
+    def files(self, info: Info, user_id: gql.relay.GlobalID | None = None) -> Iterable[FileType]:
         """Разрешение выгрузки файлов """
 
         if user_id is not None:

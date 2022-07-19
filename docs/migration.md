@@ -132,19 +132,20 @@
 
 Стало
 
-    @gql.django.filter
-    class LogRequestFilter:
-        page: gql.auto
-        created_at: gql.auto
+    @gql.django.filter(File, lookups=True)
+    class FileFilter:
+        name: gql.auto
     
     
-    @gql.django.type(LogRequest, filters=LogRequestFilter)
-    class LogRequestType(gql.relay.Node):
+    @gql.django.type(File, filters=FileFilter, pagination=True)
+    class FileType(gql.relay.Node):
         id: gql.auto
-        page: gql.auto
-        time: gql.auto
+        name: gql.auto
+        src: str
+        deleted: gql.auto
         created_at: gql.auto
-        session: 'SessionType'
+        updated_at: gql.auto
+        user: UserType
 
 # 4. Запросы
 
@@ -198,7 +199,7 @@ Relay
         user.groups.set(groups)
         return {'groups': groups}
 
-# 4. Валидация
+# 6. Валидация
 
 Было
 
@@ -231,7 +232,7 @@ Relay
 
 Больше информации в документации django по формам.
 
-# 5. Пермишены
+# 7. Пермишены
 Такое
 
     AddGroup = ModelPermission('auth.add_group')

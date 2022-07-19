@@ -106,7 +106,7 @@ class UserMutations:
 
     @legacy_mutation(directives=[IsAuthenticated(), HasPerm('core.add_user')])
     def upload_users(self, info: Info, groups_id: List[int], file: Upload) -> TypedDict('', {
-        'users': list[UserType] | None}):  # todo union tabletype
+        'users': list[UserType] | None}):
         f: File = File.objects.create(name=file.name, src=file, user=info.context.request.user, deleted=True)
         iff: ImportFromFile = ImportFromFile(User, f.src.path)  # todo validator
         profiles = Profile.objects.filter(parent__isnull=False).values('id', 'code')
@@ -145,7 +145,7 @@ class UserMutations:
         # )
 
     @legacy_mutation(directives=[IsAuthenticated(), HasPerm('auth.change_group')])
-    def change_user_groups(self, user_id: gql.ID, groups_id: List[int]) -> TypedDict('', {
+    def change_user_groups(self, user_id: gql.relay.GlobalID, groups_id: List[int]) -> TypedDict('', {
         'groups': list[GroupType] | None}):
         user: User | None = UserType.resolve_node(user_id)
         if user is None:
@@ -163,7 +163,7 @@ class UserMutations:
         return {}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def change_avatar(self, info: Info, user_id: gql.ID, file: Upload) -> TypedDict('', {'avatar': str | None}):
+    def change_avatar(self, info: Info, user_id: gql.relay.GlobalID, file: Upload) -> TypedDict('', {'avatar': str | None}):
         user: User | None = UserType.resolve_node(user_id)
         self_or_can_change(info, user)
         user.avatar.delete(save=False)
@@ -189,7 +189,7 @@ class UserMutations:
         return {}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def change_user_props(self, info: Info, user_id: gql.ID, email: str, first_name: str, last_name: str,
+    def change_user_props(self, info: Info, user_id: gql.relay.GlobalID, email: str, first_name: str, last_name: str,
                           sir_name: str, birthday: datetime.date) -> TypedDict('', {'user': UserType | None}):
         user: User = UserType.resolve_node(user_id, required=True)
         self_or_can_change(info, user)

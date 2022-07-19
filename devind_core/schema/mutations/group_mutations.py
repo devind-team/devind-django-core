@@ -29,13 +29,13 @@ class GroupMutations:
     def change_group_name(self, group_id: gql.ID, name: str) -> TypedDict('', {'group': GroupType | None}):
         group: Group = get_object_or_none(Group, pk=group_id)
         if group is None:
-            raise ObjectDoesNotExist('Группа не найдена') # todo
+            raise ObjectDoesNotExist('Группа не найдена')
         group.name = name
         group.save(update_fields=('name',))
         return {'group': group}
 
     @legacy_mutation(directives=[IsAuthenticated(), HasPerm('auth.change_group')])
-    def change_group_permissions(self, group_id: gql.ID, permissions_id: list[gql.ID], action: ActionRelationShip) -> TypedDict('', {'permissions_id': list[gql.ID] | None, 'action': ActionRelationShip | None}): #todo смена сигнатуры
+    def change_group_permissions(self, group_id: gql.ID, permissions_id: list[gql.ID], action: ActionRelationShip) -> TypedDict('', {'permissions_id': list[gql.ID] | None, 'action': ActionRelationShip | None}):
         group: Group = get_object_or_404(Group, pk=group_id)
         if action == ActionRelationShip.ADD:
             group.permissions.add(*Permission.objects.filter(pk__in=permissions_id))

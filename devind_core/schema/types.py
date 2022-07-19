@@ -48,7 +48,13 @@ def get_user_type():
 UserType = get_user_type()
 
 
-@gql.django.type(ContentType)
+@gql.django.filter(ContentType, lookups=True)
+class ContentTypeFilter:
+    model: gql.auto
+
+
+#todo документация
+@gql.django.type(ContentType, filters=ContentTypeFilter)
 class ContentTypeType:
     id: gql.auto
     app_label: gql.auto
@@ -74,7 +80,7 @@ class PermissionType:
         return root.group_set.all()
 
 
-@gql.django.type(Session)
+@gql.django.type(Session, pagination=True)
 class SessionType(gql.relay.Node):
     id: gql.auto
     user: UserType
@@ -104,12 +110,12 @@ class SessionType(gql.relay.Node):
         return root.logrequest_set.count
 
 
-@gql.django.filter(File)
+@gql.django.filter(File, lookups=True)
 class FileFilter:
     name: gql.auto
 
 
-@gql.django.type(File, filters=FileFilter)
+@gql.django.type(File, filters=FileFilter, pagination=True)
 class FileType(gql.relay.Node):
     id: gql.auto
     name: gql.auto
@@ -229,13 +235,13 @@ class ApplicationType:
     algorithm: gql.auto
 
 
-@gql.django.filter
+@gql.django.filter(LogRequest, lookups=True)
 class LogRequestFilter:
     page: gql.auto
     created_at: gql.auto
 
 
-@gql.django.type(LogRequest, filters=LogRequestFilter)
+@gql.django.type(LogRequest, filters=LogRequestFilter, pagination=True)
 class LogRequestType(gql.relay.Node):
     id: gql.auto
     page: gql.auto
@@ -244,12 +250,18 @@ class LogRequestType(gql.relay.Node):
     session: 'SessionType'
 
 
-@gql.django.type(LogEntry)
+@gql.django.filter(LogEntry, lookups=True)
+class LogEntryFilter:
+    action: gql.auto
+    content_type: 'ContentTypeFilter'
+
+
+@gql.django.type(LogEntry, filters=LogEntryFilter, pagination=True)
 class LogEntryType(gql.relay.Node):
     id: gql.relay.GlobalID
     object_id: gql.auto
     action: gql.auto
-    content_type: 'ContentTypeType'
+    content_type: 'ContentTypeType' = gql.django.field(filters=ContentTypeFilter)
 
     @gql.django.field
     def session(self, root: LogEntry) -> SessionType | None:

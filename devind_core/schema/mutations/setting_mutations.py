@@ -20,7 +20,7 @@ User: models.Model = get_user_model()
 class SettingMutations:
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def change_settings(self, info: Info, user_id: gql.ID, key: str, value: str) -> TypedDict('', {'setting': SettingType | SettingValueType | None}):
+    def change_settings(self, info: Info, user_id: gql.relay.GlobalID, key: str, value: str) -> TypedDict('', {'setting': SettingType | SettingValueType | None}):
         """Мутация для изменения настроек"""
         user: User = UserType.resolve_node(user_id)
         setting = Setting.objects.get(key=key)
@@ -35,7 +35,7 @@ class SettingMutations:
         return {'setting': res}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def reset_settings(self, info: Info, user_id: gql.ID) -> TypedDict('', {'settings': list[SettingType] | None}):
+    def reset_settings(self, info: Info, user_id: gql.relay.GlobalID) -> TypedDict('', {'settings': list[SettingType] | None}):
         """Мутация для сброса настроек по умолчанию"""
         user: User = UserType.resolve_node(user_id)
         self_or_has_perm(info, user, 'devind_core.delete_setting')

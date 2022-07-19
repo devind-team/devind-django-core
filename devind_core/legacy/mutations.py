@@ -64,9 +64,7 @@ def _map_exception(error: Exception):
 
 
 def is_optional(field):
-    # org = field is None
     t = type(None) in get_args(field)
-    a = 10
     return t
     # return get_origin(field) is Union and \
     #        type(None) in get_args(field)

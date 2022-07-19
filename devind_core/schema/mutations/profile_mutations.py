@@ -37,7 +37,7 @@ class ProfileMutations:
         return {}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def change_profile_value(self, user_id: gql.ID, profile_id: gql.ID, value: str, info: Info) -> TypedDict('', {
+    def change_profile_value(self, user_id: gql.relay.GlobalID, profile_id: gql.ID, value: str, info: Info) -> TypedDict('', {
         'profile_value': ProfileValueType | None}):
         """Мутация на изменение значения профиля."""
         user: User = UserType.resolve_node(user_id)

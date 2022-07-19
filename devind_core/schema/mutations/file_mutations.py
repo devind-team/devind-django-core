@@ -20,14 +20,14 @@ File: Type[models.Model] = get_file_model()
 class FileMutations:
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def add_file(self, info: Info, user_id: gql.ID, files: list[Upload]) -> TypedDict('', {'files': list[FileType] | None}):
+    def add_file(self, info: Info, user_id: gql.relay.GlobalID, files: list[Upload]) -> TypedDict('', {'files': list[FileType] | None}):
         """Мутация для загрузки файлов"""
         user = UserType.resolve_node(user_id, required=True)
         self_or_has_perm(info, user, 'devind_core.change_file')
         return {'files': list(reversed([File.objects.create(user=user, name=file.name, src=file) for file in files]))}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def change_file(self, info: Info, file_id: gql.ID, field: str, value: str) -> TypedDict('', {'file': FileType | None}):
+    def change_file(self, info: Info, file_id: gql.relay.GlobalID, field: str, value: str) -> TypedDict('', {'file': FileType | None}):
         """Мутация для изменения файла"""
         file: File = FileType.resolve_node(file_id)
         self_or_has_perm(info, file.user, 'devind_core.change_file')
@@ -38,7 +38,7 @@ class FileMutations:
         return {'file': file}
 
     @legacy_mutation(directives=[IsAuthenticated()])
-    def delete_file(self, info: Info, file_id: gql.ID) -> TypedDict('', {'id': gql.ID | None}):
+    def delete_file(self, info: Info, file_id: gql.relay.GlobalID) -> TypedDict('', {'id': gql.ID | None}):
         """Мутация для полного удаления файла"""
         file: File = FileType.resolve_node(file_id)
         self_or_has_perm(info, file.user, 'devind_core.delete_file')
