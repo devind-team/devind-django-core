@@ -129,12 +129,11 @@ class LogoutMutation(BaseMutation):
         session_id = graphene.ID(required=True, description='Идентификатор сессии')
 
     @staticmethod
-    @permission_classes([IsAuthenticated, ChangeUser, DeleteUser])
+    @permission_classes([IsAuthenticated])
     def mutate_and_get_payload(root, info: ResolveInfo, session_id: str):
         _, pk = from_global_id(session_id)
         session: Optional[Session] = get_object_or_none(Session, pk=pk)
-        info.context.check_object_permissions(info.context, session.access_token.user)
-        session.user.logout(session)
+        info.context.user.logout(session)
         return LogoutMutation()
 
 
