@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.2 (2022-08-14)
+### Fix
+* Исправлена мутация разлогинивания ([`5779790`](https://github.com/devind-team/devind-django-core/commit/5779790d477bde17e49c7e45552c75a563a6d756))
+
 ## v0.7.1 (2022-06-22)
 ### Fix
 * Проверка наличия сессии ([`2875e23`](https://github.com/devind-team/devind-django-core/commit/2875e238bb7eea6e5585c1483a7f9e157dcd1525))
