@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.3 (2022-10-04)
+### Fix
+* Обновление зависимости ([`c8c8105`](https://github.com/devind-team/devind-django-core/commit/c8c8105c4db97e494b2925398b25e24fed89ed15))
+
 ## v0.7.2 (2022-08-14)
 ### Fix
 * Исправлена мутация разлогинивания ([`5779790`](https://github.com/devind-team/devind-django-core/commit/5779790d477bde17e49c7e45552c75a563a6d756))
