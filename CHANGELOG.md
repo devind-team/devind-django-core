@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.7.5 (2022-10-17)
+### Fix
+* Обновление зависимостей ([`a7524bc`](https://github.com/devind-team/devind-django-core/commit/a7524bc3e22a7a8cd3889e17c5b35e7a3da9f23d))
+
 ## v0.7.4 (2022-10-10)
 ### Fix
 * Обновление зависимостей ([`2ad0715`](https://github.com/devind-team/devind-django-core/commit/2ad0715276a2da1943adce30bba79c1629e69c80))
